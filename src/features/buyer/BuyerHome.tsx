@@ -43,14 +43,14 @@ const buyerContext: Record<BuyerLevel, { tier: string; subtitle: string; color: 
 };
 
 // ── Top Nav (simplificat) ──────────────────────────
-function TopNav({ userName }: { userName: string }) {
+function TopNav({ userName, onProjectsClick }: { userName: string; onProjectsClick?: () => void }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-neutral-200">
       <div className="flex items-center gap-6">
         <span className="font-semibold text-neutral-900 text-sm">GLAZEO</span>
         <nav className="hidden sm:flex items-center gap-4">
           <span className="text-sm font-medium text-[#1A56DB]">Workspace</span>
-          <span className="text-sm text-neutral-500 cursor-pointer hover:text-neutral-700 transition-colors">Projects</span>
+          <button onClick={onProjectsClick} className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors cursor-pointer">Projects</button>
         </nav>
       </div>
       <div className="flex items-center gap-3">
@@ -135,8 +135,8 @@ function KnowledgeCard() {
 }
 
 // ── Main ───────────────────────────────────────────
-export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel" }: {
-  buyerLevel?: BuyerLevel; userName?: string;
+export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel", onNavigateProject }: {
+  buyerLevel?: BuyerLevel; userName?: string; onNavigateProject?: (projectId: string) => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -157,7 +157,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
   if (error) {
     return (
       <div className="min-h-screen bg-[#F8F9FB]">
-        <TopNav userName={userName} />
+        <TopNav userName={userName} onProjectsClick={() => onNavigateProject?.("p1")} />
         <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 52px)" }}>
           <div className="text-center max-w-md px-4">
             <span className="text-4xl mb-4 block">⚠️</span>
@@ -177,7 +177,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8F9FB]">
-        <TopNav userName={userName} />
+        <TopNav userName={userName} onProjectsClick={() => onNavigateProject?.("p1")} />
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="mb-8">
             <div className="h-4 w-24 bg-neutral-200 rounded animate-pulse mb-2" />
@@ -194,7 +194,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
-      <TopNav userName={userName} />
+      <TopNav userName={userName} onProjectsClick={() => onNavigateProject?.("p1")} />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
@@ -245,7 +245,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
             <EmptyState icon="📁" message="Nu ai încă niciun proiect." actionLabel="Configurează primul produs" onAction={() => navigate("/configurator")} />
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {MOCK_PROJECTS.map((p) => <ProjectCard key={p.id} project={p} onClick={() => navigate(`/project/${p.id}`)} />)}
+              {MOCK_PROJECTS.map((p) => <ProjectCard key={p.id} project={p} onClick={() => onNavigateProject?.(p.id)} />)}
             </div>
           )}
         </Section>
