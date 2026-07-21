@@ -84,19 +84,36 @@ function TodaySummary({ expiringQuotes, activeOrders, activeProjects }: {
 
 // ── Recommended Action Card ────────────────────────
 function RecommendedAction({ quote, onAction }: { quote: QuoteSummary; onAction: () => void }) {
+  const daysLeft = quote.validUntil
+    ? Math.ceil((new Date(quote.validUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : 0;
+
   return (
-    <div className="bg-[#FFF8E1] rounded-xl border border-[#F59E0B]/30 p-5 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div>
-        <p className="text-xs font-semibold text-[#B45309] uppercase tracking-wider mb-1">Recommended Action</p>
-        <p className="text-neutral-800 font-medium">
-          Oferta <span className="font-semibold">{quote.number}</span> — {quote.clientName} — expiră{" "}
-          {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString("ro-RO") : "curând"}.
-        </p>
+    <div className="bg-[#FFF8E1] rounded-xl border-2 border-[#F59E0B]/40 p-6 mb-8 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-[#B45309] uppercase tracking-wider mb-2">⚡ Recommended Action</p>
+          <p className="text-neutral-900 font-semibold text-lg leading-snug mb-1">
+            {quote.number} — {quote.clientName}
+          </p>
+          <p className="text-neutral-600 text-sm">
+            {quote.productName} · {quote.total.toLocaleString("ro-RO")} {quote.currency === "EUR" ? "€" : "lei"}
+          </p>
+          <div className="mt-3 pt-3 border-t border-[#F59E0B]/20">
+            <p className="text-sm text-[#92400E] font-medium">
+              💡 {daysLeft <= 1
+                ? "Expiră azi. După expirare, prețurile vor necesita recalculare."
+                : `Expiră în ${daysLeft} zile. După expirare, oferta va necesita recalcularea prețului.`}
+            </p>
+          </div>
+        </div>
+        <button onClick={onAction}
+          className="px-6 py-3 text-sm font-semibold bg-[#F59E0B] text-[#7C2D12] rounded-xl
+            hover:bg-[#D97706] hover:text-white transition-all duration-200 flex-shrink-0 shadow-sm
+            focus-visible:outline-2 focus-visible:outline-[#F59E0B] focus-visible:outline-offset-2">
+          Revizuiește oferta →
+        </button>
       </div>
-      <button onClick={onAction}
-        className="px-4 py-2 text-sm font-medium bg-[#F59E0B] text-[#7C2D12] rounded-lg hover:bg-[#D97706] hover:text-white transition-colors flex-shrink-0">
-        Revizuiește oferta
-      </button>
     </div>
   );
 }
