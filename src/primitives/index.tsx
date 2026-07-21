@@ -147,3 +147,55 @@ export function Skeleton({ count = 3 }: { count?: number }) {
     ))}
   </div>;
 }
+
+// ══════════════════════════════════════════════
+// Confirm Dialog — pentru acțiuni financiare
+// ══════════════════════════════════════════════
+type ConfirmDialogProps = {
+  open: boolean;
+  title: string;
+  message: string;
+  consequence: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: "primary" | "danger";
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+export function ConfirmDialog({
+  open, title, message, consequence,
+  confirmLabel = "Confirmă", cancelLabel = "Anulează",
+  variant = "primary", onConfirm, onCancel,
+}: ConfirmDialogProps) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onCancel}>
+      <div
+        className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <h3 className="text-lg font-semibold text-neutral-900 mb-2">{title}</h3>
+        <p className="text-sm text-neutral-600 mb-2">{message}</p>
+        <div className="bg-[#FFF8E1] rounded-lg p-3 mb-4">
+          <p className="text-sm text-[#92400E] font-medium">💡 {consequence}</p>
+        </div>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-[#4B5563] bg-[#F3F4F6] rounded-lg hover:bg-[#E5E7EB] transition-colors">
+            {cancelLabel}
+          </button>
+          <button onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors
+              ${variant === "danger" ? "bg-[#EF4444] hover:bg-[#DC2626]" : "bg-[#1A56DB] hover:bg-[#1E40AF]"}`}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

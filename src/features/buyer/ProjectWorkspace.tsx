@@ -1,165 +1,32 @@
 // ══════════════════════════════════════════════
-// GLAZEO — Project Workspace v2.0 (Gate 2)
-// Interactive mock state: Configuration → Quote → Accept → Order
+// GLAZEO — Project Workspace v2.1 (Gate 2)
+// Extracted state machine + financial confirm dialog
 // ══════════════════════════════════════════════
-import { useState, useReducer } from "react";
-import { Section, StatusBadge, EmptyState } from "../../primitives";
+import { useState, useReducer, useCallback } from "react";
+import { Section, StatusBadge, EmptyState, ConfirmDialog } from "../../primitives";
 import { Card } from "../../primitives";
-import type { StatusKey } from "../../foundation/tokens";
-
-// ── Types ───────────────────────────────────────────
-type ConfigItem = {
-  id: string; name: string; version: number;
-  status: "draft" | "quoted" | "ordered" | "archived";
-  lastEdited: string; productType: string;
-};
-
-type QuoteItem = {
-  id: string; number: string; configId: string; configVersion: number;
-  total: number; currency: "EUR" | "RON";
-  status: "draft" | "sent" | "accepted" | "rejected" | "expired";
-  validUntil: string; createdAt: string;
-};
-
-type OrderItem = {
-  id: string; number: string; quoteId: string;
-  productName: string; status: StatusKey;
-  estimatedDelivery: string; createdAt: string;
-};
-
-type ActivityEvent = {
-  id: string; date: string; text: string; type: "config" | "quote" | "order" | "project";
-};
-
-type ProjectState = {
-  id: string; name: string; productType: string;
-  status: StatusKey; progress: number;
-  address: string; participants: string[];
-  configurations: ConfigItem[];
-  quotes: QuoteItem[];
-  orders: OrderItem[];
-  activity: ActivityEvent[];
-};
-
-// ── Actions ─────────────────────────────────────────
-type Action =
-  | { type: "REQUEST_QUOTE"; configId: string }
-  | { type: "ACCEPT_QUOTE"; quoteId: string }
-  | { type: "REJECT_QUOTE"; quoteId: string }
-  | { type: "DUPLICATE_CONFIG"; configId: string };
-
-let eventId = 10;
-function event(type: ActivityEvent["type"], text: string): ActivityEvent {
-  return { id: `e${eventId++}`, date: new Date().toLocaleDateString("ro-RO", { day: "numeric", month: "short" }), text, type };
-}
-
-function reducer(state: ProjectState, action: Action): ProjectState {
-  switch (action.type) {
-    case "REQUEST_QUOTE": {
-      const cfg = state.configurations.find(c => c.id === action.configId);
-      if (!cfg || cfg.status !== "draft") return state;
-      const quoteNum = `OF-2026-${String(40 + state.quotes.length + 1).padStart(4, "0")}`;
-      const validUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-      const newQuote: QuoteItem = {
-        id: `q${state.quotes.length + 1}`, number: quoteNum,
-        configId: cfg.id, configVersion: cfg.version,
-        total: cfg.productType.includes("Balustrad") ? 2847 : 5200,
-        currency: "EUR", status: "sent", validUntil,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      return {
-        ...state,
-        configurations: state.configurations.map(c =>
-          c.id === action.configId ? { ...c, status: "quoted" as const } : c
-        ),
-        quotes: [...state.quotes, newQuote],
-        activity: [event("quote", `Ofertă ${newQuote.number} generată din ${cfg.name} v${cfg.version}`), ...state.activity],
-        progress: Math.min(100, state.progress + 15),
-      };
-    }
-    case "ACCEPT_QUOTE": {
-      const q = state.quotes.find(q => q.id === action.quoteId);
-      if (!q || q.status !== "sent") return state;
-      const orderNum = `CMD-2026-${String(30 + state.orders.length + 1).padStart(4, "0")}`;
-      const cfg = state.configurations.find(c => c.id === q.configId);
-      const newOrder: OrderItem = {
-        id: `o${state.orders.length + 1}`, number: orderNum, quoteId: q.id,
-        productName: cfg?.name ?? "Comandă nouă",
-        status: "pending", estimatedDelivery: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      return {
-        ...state,
-        quotes: state.quotes.map(qq => qq.id === action.quoteId ? { ...qq, status: "accepted" as const } : qq),
-        configurations: state.configurations.map(c =>
-          c.id === q.configId ? { ...c, status: "ordered" as const } : c
-        ),
-        orders: [...state.orders, newOrder],
-        activity: [
-          event("order", `Comandă ${newOrder.number} creată din oferta ${q.number}`),
-          event("quote", `Ofertă ${q.number} acceptată`),
-          ...state.activity,
-        ],
-        progress: Math.min(100, state.progress + 20),
-        status: state.progress + 20 >= 100 ? "in_progress" : state.status,
-      };
-    }
-    case "REJECT_QUOTE": {
-      return {
-        ...state,
-        quotes: state.quotes.map(q => q.id === action.quoteId ? { ...q, status: "rejected" as const } : q),
-        activity: [event("quote", `Ofertă ${state.quotes.find(q => q.id === action.quoteId)?.number} respinsă`), ...state.activity],
-      };
-    }
-    case "DUPLICATE_CONFIG": {
-      const cfg = state.configurations.find(c => c.id === action.configId);
-      if (!cfg) return state;
-      const newCfg: ConfigItem = {
-        ...cfg, id: `c${state.configurations.length + 1}`,
-        version: cfg.version + 1, status: "draft",
-        lastEdited: "chiar acum",
-        name: cfg.name.replace(/ v\d+$/, "") + ` v${cfg.version + 1}`,
-      };
-      return {
-        ...state,
-        configurations: [...state.configurations, newCfg],
-        activity: [event("config", `Configurație nouă ${newCfg.name} creată (v${newCfg.version})`), ...state.activity],
-      };
-    }
-    default:
-      return state;
-  }
-}
-
-// ── Initial State ───────────────────────────────────
-function initialState(): ProjectState {
-  return {
-    id: "p1", name: "Vila Popescu", productType: "Balustrade + Cabine Duș",
-    status: "active", progress: 65,
-    address: "Str. Plopilor 42, Timișoara",
-    participants: ["Cornel Lezeu (Buyer)", "Andreea Popescu (Arhitect)", "Ion Munteanu (Montor)"],
-    configurations: [
-      { id: "c1", name: "Balustradă terasă — 12.5m, inox lucios", version: 3, status: "draft", lastEdited: "acum 2 ore", productType: "Balustradă" },
-      { id: "c2", name: "Cabină duș walk-in — 10mm clar", version: 1, status: "draft", lastEdited: "acum 1 zi", productType: "Cabină Duș" },
-    ],
-    quotes: [
-      { id: "q1", number: "OF-2026-0042", configId: "c1", configVersion: 2, total: 2847, currency: "EUR", status: "sent", validUntil: "2026-07-23", createdAt: "2026-07-20" },
-    ],
-    orders: [],
-    activity: [
-      { id: "e1", date: "21 Iul", text: "Ofertă OF-2026-0042 trimisă", type: "quote" },
-      { id: "e2", date: "20 Iul", text: "Configurație Balustradă terasă v2 salvată", type: "config" },
-      { id: "e3", date: "18 Iul", text: "Configurație Cabină duș creată", type: "config" },
-      { id: "e4", date: "15 Iul", text: "Proiect creat", type: "project" },
-    ],
-  };
-}
+import {
+  reducer, createInitialState,
+  type QuoteItem,
+} from "./projectState";
 
 // ── Component ───────────────────────────────────────
 export default function ProjectWorkspace({ onBack }: { projectId: string; onBack: () => void }) {
-  const [state, dispatch] = useReducer(reducer, null, initialState);
+  const [state, dispatch] = useReducer(reducer, null, createInitialState);
   const [activeTab, setActiveTab] = useState(0);
-  const [loading] = useState(false);
+  const [confirmQuote, setConfirmQuote] = useState<QuoteItem | null>(null);
+
+  const handleAcceptQuote = useCallback((quote: QuoteItem) => {
+    setConfirmQuote(quote);
+  }, []);
+
+  const handleConfirmAccept = useCallback(() => {
+    if (confirmQuote) {
+      dispatch({ type: "ACCEPT_QUOTE", quoteId: confirmQuote.id });
+      setConfirmQuote(null);
+      setActiveTab(3); // switch to Orders tab
+    }
+  }, [confirmQuote]);
 
   const tabs = ["Overview", "Configurări", "Oferte", "Comenzi"];
 
@@ -168,26 +35,9 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
     if (sentQuote) return { type: "quote" as const, text: `Revizuiește oferta ${sentQuote.number}`, action: () => setActiveTab(2) };
     const draftConfig = state.configurations.find(c => c.status === "draft");
     if (draftConfig) return { type: "config" as const, text: `Finalizează ${draftConfig.name}`, action: () => setActiveTab(1) };
-    if (state.orders.length > 0 && state.orders.some(o => o.status === "pending")) return { type: "order" as const, text: "Urmărește comanda activă", action: () => setActiveTab(3) };
+    if (state.orders.some(o => o.status === "pending")) return { type: "order" as const, text: "Urmărește comanda activă", action: () => setActiveTab(3) };
     return null;
   })();
-
-  // ── Loading State ──
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB]">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="h-5 w-24 bg-neutral-200 rounded animate-pulse mb-4" />
-          <div className="h-8 w-64 bg-neutral-200 rounded animate-pulse mb-2" />
-          <div className="h-4 w-48 bg-neutral-200 rounded animate-pulse mb-8" />
-          <div className="h-10 w-full bg-neutral-200 rounded animate-pulse mb-6" />
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white rounded-xl border animate-pulse" />)}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
@@ -254,20 +104,8 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
               <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
                 {state.participants.map((p, i) => (
                   <div key={i} className={`flex items-center gap-2 text-sm ${i > 0 ? "mt-2 pt-2 border-t border-neutral-100" : ""}`}>
-                    <span className="w-7 h-7 rounded-full bg-[#EFF6FF] flex items-center justify-center text-xs font-medium text-[#1A56DB]">
-                      {p[0]}
-                    </span>
+                    <span className="w-7 h-7 rounded-full bg-[#EFF6FF] flex items-center justify-center text-xs font-medium text-[#1A56DB]">{p[0]}</span>
                     <span className="text-neutral-700">{p}</span>
-                  </div>
-                ))}
-              </div>
-            </Section>
-            <Section title="Activity">
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                {state.activity.slice(0, 10).map((a, i) => (
-                  <div key={a.id} className={`flex gap-3 ${i > 0 ? "mt-2 pt-2 border-t border-neutral-100" : ""}`}>
-                    <span className="text-xs text-neutral-400 w-12 flex-shrink-0">{a.date}</span>
-                    <span className="text-sm text-neutral-700">{a.text}</span>
                   </div>
                 ))}
               </div>
@@ -279,7 +117,7 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
         {activeTab === 1 && (
           <Section title="Configurări" badge={state.configurations.length}>
             {state.configurations.length === 0 ? (
-              <EmptyState icon="⚙️" message="Nicio configurație încă." actionLabel="Configurează un produs" onAction={() => {}} />
+              <EmptyState icon="⚙️" message="Nicio configurație încă." />
             ) : (
               <div className="grid sm:grid-cols-2 gap-3">
                 {state.configurations.map(c => (
@@ -320,17 +158,19 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
               <div className="grid sm:grid-cols-2 gap-3">
                 {state.quotes.map(q => {
                   const cfg = state.configurations.find(c => c.id === q.configId);
-                  const isExpiring = new Date(q.validUntil).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000;
+                  const isExpiring = q.status === "sent" && new Date(q.validUntil).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000;
+                  const statusDisplay = q.status === "superseded" ? "archived" as const : q.status;
                   return (
                     <Card key={q.id} icon="📄" title={q.number}
                       subtitle={`${q.total.toLocaleString("ro-RO")} ${q.currency === "EUR" ? "€" : "lei"} · din ${cfg?.name ?? "—"} v${q.configVersion}`}
-                      status={q.status}
+                      status={statusDisplay}
                       highlight={!!(isExpiring && q.status === "sent")}
                       footer={
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-neutral-500">
                             {q.status === "sent" ? `Expiră: ${new Date(q.validUntil).toLocaleDateString("ro-RO")}` :
                              q.status === "accepted" ? `Acceptată: ${new Date(q.createdAt).toLocaleDateString("ro-RO")}` :
+                             q.status === "superseded" ? "Înlocuită de o ofertă acceptată" :
                              q.status === "rejected" ? "Respinsă" : ""}
                           </span>
                           {q.status === "sent" && (
@@ -339,7 +179,7 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
                                 className="px-2.5 py-1.5 text-xs font-medium text-[#991B1B] bg-[#FEF2F2] rounded-lg hover:bg-[#FEE2E2] transition-colors">
                                 Refuză
                               </button>
-                              <button onClick={() => dispatch({ type: "ACCEPT_QUOTE", quoteId: q.id })}
+                              <button onClick={() => handleAcceptQuote(q)}
                                 className="px-2.5 py-1.5 text-xs font-medium bg-[#1A56DB] text-white rounded-lg hover:bg-[#1E40AF] transition-colors">
                                 Acceptă
                               </button>
@@ -347,7 +187,7 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
                           )}
                         </div>
                       }>
-                      {isExpiring && q.status === "sent" && (
+                      {isExpiring && (
                         <p className="text-xs text-[#B45309] mt-1">⚠️ Expiră în mai puțin de 2 zile</p>
                       )}
                     </Card>
@@ -375,8 +215,11 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
                   const idx = steps.findIndex(s => s.key === o.status);
                   return (
                     <Card key={o.id} icon="📦" title={o.productName}
-                      subtitle={`${o.number} · Creată: ${new Date(o.createdAt).toLocaleDateString("ro-RO")}`}
+                      subtitle={`${o.number} · Ofertă: ${o.quoteNumber} · Config: ${o.configName} v${o.configVersion}`}
                       status={o.status}>
+                      <div className="mt-2 text-sm text-neutral-600">
+                        <p>{o.total.toLocaleString("ro-RO")} {o.currency === "EUR" ? "€" : "lei"}</p>
+                      </div>
                       <div className="mt-3">
                         <div className="flex gap-1 mb-2">
                           {steps.map((s, i) => (
@@ -385,17 +228,13 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
                         </div>
                         <div className="flex justify-between text-[10px]">
                           {steps.map((s, i) => (
-                            <span key={s.key} className={i <= idx ? "text-[#1A56DB] font-medium" : "text-neutral-400"}>
-                              {s.label}
-                            </span>
+                            <span key={s.key} className={i <= idx ? "text-[#1A56DB] font-medium" : "text-neutral-400"}>{s.label}</span>
                           ))}
                         </div>
                       </div>
-                      {o.estimatedDelivery && (
-                        <p className="text-xs text-neutral-500 mt-2">
-                          🚚 Estimare livrare: {new Date(o.estimatedDelivery).toLocaleDateString("ro-RO")}
-                        </p>
-                      )}
+                      <p className="text-xs text-neutral-500 mt-2">
+                        🚚 Estimare livrare: {new Date(o.estimatedDelivery).toLocaleDateString("ro-RO")}
+                      </p>
                     </Card>
                   );
                 })}
@@ -404,11 +243,11 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
           </Section>
         )}
 
-        {/* ── Activity Timeline (visible on all tabs as sidebar/bottom) ── */}
+        {/* ── Activity Timeline ── */}
         <div className="mt-8">
           <Section title="Activitate recentă">
             <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 max-h-64 overflow-y-auto">
-              {state.activity.slice(0, 8).map((a, i) => (
+              {state.activity.slice(0, 10).map((a, i) => (
                 <div key={a.id} className={`flex gap-3 ${i > 0 ? "mt-2 pt-2 border-t border-neutral-100" : ""}`}>
                   <span className={`text-xs w-12 flex-shrink-0 ${
                     a.type === "quote" ? "text-[#B45309]" : a.type === "order" ? "text-[#1D4ED8]" : a.type === "config" ? "text-[#059669]" : "text-neutral-400"
@@ -420,6 +259,18 @@ export default function ProjectWorkspace({ onBack }: { projectId: string; onBack
           </Section>
         </div>
       </div>
+
+      {/* ── Financial Confirm Dialog ── */}
+      <ConfirmDialog
+        open={confirmQuote !== null}
+        title="Confirmă acceptarea ofertei"
+        message={`Ești sigur că vrei să accepți oferta ${confirmQuote?.number}?`}
+        consequence={`Se va crea o comandă în valoare de ${confirmQuote?.total.toLocaleString("ro-RO")} ${confirmQuote?.currency === "EUR" ? "EUR" : "RON"}. Configurația va deveni read-only.`}
+        confirmLabel="Acceptă oferta"
+        variant="primary"
+        onConfirm={handleConfirmAccept}
+        onCancel={() => setConfirmQuote(null)}
+      />
     </div>
   );
 }
