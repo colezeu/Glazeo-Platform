@@ -43,7 +43,7 @@ const buyerContext: Record<BuyerLevel, { tier: string; subtitle: string; color: 
 };
 
 // ── Top Nav (simplificat) ──────────────────────────
-function TopNav({ userName, buyerLevel }: { userName: string; buyerLevel: BuyerLevel }) {
+function TopNav({ userName }: { userName: string }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-neutral-200">
       <div className="flex items-center gap-6">
@@ -140,7 +140,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
   if (error) {
     return (
       <div className="min-h-screen bg-[#F8F9FB]">
-        <TopNav userName={userName} buyerLevel={buyerLevel} />
+        <TopNav userName={userName} />
         <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 52px)" }}>
           <div className="text-center max-w-md px-4">
             <span className="text-4xl mb-4 block">⚠️</span>
@@ -160,7 +160,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8F9FB]">
-        <TopNav userName={userName} buyerLevel={buyerLevel} />
+        <TopNav userName={userName} />
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="mb-8">
             <div className="h-4 w-24 bg-neutral-200 rounded animate-pulse mb-2" />
@@ -177,7 +177,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
-      <TopNav userName={userName} buyerLevel={buyerLevel} />
+      <TopNav userName={userName} />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
