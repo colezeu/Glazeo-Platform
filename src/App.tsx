@@ -1,24 +1,30 @@
 // ══════════════════════════════════════════════
-// GLAZEO Platform — App Shell (Gate 3)
-// Auth → Workspace → Project
+// GLAZEO Platform — App Shell (Gate 4)
+// Landing → Auth → Workspace → Project
 // ══════════════════════════════════════════════
 import { useState, useEffect } from "react";
 import { supabase } from "./app/supabase";
+import LandingPage from "./features/buyer/LandingPage";
 import AuthPage from "./features/buyer/AuthPage";
 import BuyerHome from "./features/buyer/BuyerHome";
 import ProjectWorkspace from "./features/buyer/ProjectWorkspace";
+import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback";
+import { Analytics } from "./app/feedback";
 import type { BuyerLevel } from "./foundation/tokens";
 
-type View = { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string };
+type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string };
 
 export default function App() {
-  const [view, setView] = useState<View>({ screen: "auth" });
+  const [view, setView] = useState<View>({ screen: "landing" });
   const [level, setLevel] = useState<BuyerLevel>("verified");
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setView({ screen: "home" });
+      if (data.user) {
+        setView({ screen: "home" });
+        Analytics.login();
+      }
       setInitializing(false);
     });
   }, []);
@@ -35,40 +41,50 @@ export default function App() {
   }
 
   return (
-    <div>
-      {/* Level switcher (dev only) */}
-      {view.screen !== "auth" && (
-        <div className="fixed top-16 right-4 z-50 flex gap-2">
-          {(["public", "verified", "contracted"] as BuyerLevel[]).map((l) => (
-            <button key={l} onClick={() => setLevel(l)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
-                ${level === l ? "bg-[#1A56DB] text-white" : "bg-white text-neutral-600 border border-neutral-300 hover:bg-neutral-50"}`}>
-              {l === "public" ? "Public" : l === "verified" ? "Verified" : "Contracted"}
+    <GlazeoErrorBoundary>
+      <div>
+        {/* Level switcher (dev only) */}
+        {view.screen !== "landing" && view.screen !== "auth" && (
+          <div className="fixed top-16 right-4 z-40 flex gap-2">
+            {(["public", "verified", "contracted"] as BuyerLevel[]).map((l) => (
+              <button key={l} onClick={() => setLevel(l)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
+                  ${level === l ? "bg-[#1A56DB] text-white" : "bg-white text-neutral-600 border border-neutral-300 hover:bg-neutral-50"}`}>
+                {l === "public" ? "Public" : l === "verified" ? "Verified" : "Contracted"}
+              </button>
+            ))}
+            <button
+              onClick={async () => { await supabase.auth.signOut(); setView({ screen: "landing" }); }}
+              className="px-3 py-1.5 text-xs font-medium bg-[#FEF2F2] text-[#991B1B] rounded-lg hover:bg-[#FEE2E2] border border-[#EF4444]/30">
+              Logout
             </button>
-          ))}
-          <button
-            onClick={async () => { await supabase.auth.signOut(); setView({ screen: "auth" }); }}
-            className="px-3 py-1.5 text-xs font-medium bg-[#FEF2F2] text-[#991B1B] rounded-lg hover:bg-[#FEE2E2] border border-[#EF4444]/30">
-            Logout
-          </button>
-        </div>
-      )}
+          </div>
+        )}
 
-      {view.screen === "auth" && (
-        <AuthPage onAuthenticated={() => setView({ screen: "home" })} />
-      )}
-      {view.screen === "home" && (
-        <BuyerHome
-          buyerLevel={level}
-          onNavigateProject={(projectId) => setView({ screen: "project", projectId })}
-        />
-      )}
-      {view.screen === "project" && (
-        <ProjectWorkspace
-          projectId={view.projectId}
-          onBack={() => setView({ screen: "home" })}
-        />
-      )}
-    </div>
+        {view.screen === "landing" && (
+          <LandingPage onAuthenticated={() => { Analytics.signup(); setView({ screen: "home" }); }} />
+        )}
+        {view.screen === "auth" && (
+          <AuthPage onAuthenticated={() => setView({ screen: "home" })} />
+        )}
+        {view.screen === "home" && (
+          <BuyerHome
+            buyerLevel={level}
+            onNavigateProject={(projectId) => setView({ screen: "project", projectId })}
+          />
+        )}
+        {view.screen === "project" && (
+          <ProjectWorkspace
+            projectId={view.projectId}
+            onBack={() => setView({ screen: "home" })}
+          />
+        )}
+
+        {/* Global feedback widget */}
+        {view.screen !== "landing" && <FeedbackWidget />}
+        {/* Analytics debug (dev only) */}
+        <AnalyticsDebug />
+      </div>
+    </GlazeoErrorBoundary>
   );
 }
