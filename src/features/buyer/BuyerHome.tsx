@@ -91,9 +91,6 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
     );
   }
 
-  const ctaLabel = buyerLevel === "contracted" ? "Configurează și comandă"
-    : buyerLevel === "verified" ? "Solicită ofertă" : "Solicită ofertă";
-
   const navigate = (path: string) => console.log(`[Mock] Navigate to: ${path}`);
 
   return (

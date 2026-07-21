@@ -1,4 +1,4 @@
-import type { StatusKey, ActionDef, BuyerLevel } from "../foundation/tokens";
+import type { StatusKey, BuyerLevel } from "../foundation/tokens";
 import { status as statusTokens } from "../foundation/tokens";
 
 // ══════════════════════════════════════════════
