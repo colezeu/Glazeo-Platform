@@ -40,74 +40,20 @@ export default function AuthPage({ onAuthenticated }: AuthPageProps) {
     }
 
     if (data.user) {
-      // Auto-create profile
       const key = `profile_created_${data.user.id}`;
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, "1");
-        await supabase.from("profiles").upsert({
-          user_id: data.user.id,
-          email: data.user.email,
-          full_name: email.split("@")[0],
-          default_experience: "buyer",
-        }, { onConflict: "user_id" });
-      }
 
-      // Auto-create org if first login
-      const { data: memberships } = await supabase
-        .from("organization_members").select("id").eq("user_id", data.user.id).limit(1);
+        // Atomic onboarding via RPC
+        const { error: rpcErr } = await supabase.rpc("rpc_initialize_account", {
+          p_user_id: data.user.id,
+          p_email: data.user.email ?? email,
+          p_full_name: email.split("@")[0],
+        });
 
-      if (!memberships?.length) {
-        const { data: org } = await supabase.from("organizations").insert({
-          name: `${email.split("@")[0]}'s Company`,
-          type: "company",
-          buyer_level: "verified",
-        }).select("id").single();
-
-        if (org) {
-          await supabase.from("organization_members").insert({
-            organization_id: org.id,
-            user_id: data.user.id,
-            role: "contractor",
-          });
-
-          // Create a sample project
-          const { data: project } = await supabase.from("projects").insert({
-            organization_id: org.id,
-            name: "Vila Popescu",
-            product_type: "Balustrade + Cabine Duș",
-            status: "active", progress: 65,
-            address: "Str. Plopilor 42, Timișoara",
-            created_by: data.user.id,
-          }).select("id").single();
-
-          if (project) {
-            // Add sample configurations
-            const { data: cfg1 } = await supabase.from("configurations").insert({
-              project_id: project.id, name: "Balustradă terasă — 12.5m, inox lucios",
-              product_type: "Balustradă", status: "draft", current_version: 3,
-              last_edited: "acum 2 ore",
-            }).select("id").single();
-
-            if (cfg1) {
-              await supabase.from("configuration_versions").insert([
-                { configuration_id: cfg1.id, version: 1, status: "archived" },
-                { configuration_id: cfg1.id, version: 2, status: "archived" },
-                { configuration_id: cfg1.id, version: 3, status: "draft" },
-              ]);
-            }
-
-            await supabase.from("configurations").insert({
-              project_id: project.id, name: "Cabină duș walk-in — 10mm clar",
-              product_type: "Cabină Duș", status: "draft", current_version: 1,
-              last_edited: "acum 1 zi",
-            });
-
-            // Sample activity
-            await supabase.from("activity_events").insert([
-              { project_id: project.id, type: "project", text: "Proiect creat" },
-              { project_id: project.id, type: "config", text: "Configurație Balustradă terasă v2 salvată" },
-            ]);
-          }
+        if (rpcErr) {
+          console.error("Onboarding failed:", rpcErr);
+          // Fallback: user can still use the app, just won't have demo data
         }
       }
 

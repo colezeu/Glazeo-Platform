@@ -19,6 +19,15 @@ export interface ProjectRepository {
 
   /** Listează proiectele unui utilizator (sumar) */
   listProjects(userId: string): Promise<ProjectSummary[]>;
+
+  /** Inițializează contul unui utilizator nou (profil + org + proiect demo) */
+  initializeAccount?(userId: string, email: string, fullName: string): Promise<void>;
+
+  /** Operații de business (toate server-side via RPC) */
+  requestQuote?(configId: string): Promise<any>;
+  acceptQuote?(quoteId: string): Promise<any>;
+  rejectQuote?(quoteId: string): Promise<void>;
+  duplicateConfiguration?(configId: string): Promise<any>;
 }
 
 export type ProjectSummary = {
