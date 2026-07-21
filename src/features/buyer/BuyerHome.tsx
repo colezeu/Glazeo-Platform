@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════
-// GLAZEO Buyer — Home Workspace v1.0
-// Gate 1: Mock data only. No Supabase, no API.
+// GLAZEO Buyer — Home Workspace v1.1
+// Gate 1: Mock data. Focus: "next decision", not "what exists"
 // ══════════════════════════════════════════════
 import { useState, useEffect } from "react";
 import { Section, Skeleton, EmptyState, BuyerLevelBadge } from "../../primitives";
@@ -10,9 +10,9 @@ import type { BuyerLevel } from "../../foundation/tokens";
 
 // ── Mock Data ──────────────────────────────────────
 const MOCK_PROJECTS: ProjectSummary[] = [
-  { id: "p1", name: "Vila Popescu", productType: "Balustrade + Cabine Duș", status: "active", progress: 80 },
-  { id: "p2", name: "Office Building Cluj", productType: "Partiționări sticlă", status: "active", progress: 45 },
-  { id: "p3", name: "Hotel Budapest", productType: "Copertină + Balustrade", status: "draft", progress: 20 },
+  { id: "p1", name: "Vila Popescu", productType: "Balustrade + Cabine Duș", status: "active", nextStep: "Generate Quote", progress: 80 },
+  { id: "p2", name: "Office Building Cluj", productType: "Partiționări sticlă", status: "active", nextStep: "Waiting for Approval", progress: 45 },
+  { id: "p3", name: "Hotel Budapest", productType: "Copertină + Balustrade", status: "draft", nextStep: "Select Hardware", progress: 20 },
 ];
 
 const MOCK_QUOTES: QuoteSummary[] = [
@@ -25,29 +25,107 @@ const MOCK_ORDERS: OrderSummary[] = [
 ];
 
 const CONFIGURATORS: ConfiguratorItem[] = [
-  { key: "balustrade", label: "Balustrade", icon: "🏗️" },
-  { key: "swingdoor", label: "Uși Batante", icon: "🚪" },
-  { key: "sliding", label: "Uși Culisante", icon: "🪟" },
-  { key: "partition", label: "Partiționări", icon: "🧱" },
-  { key: "pergola", label: "Pergole", icon: "🏡" },
-  { key: "canopy", label: "Copertine", icon: "⛱️" },
-  { key: "shower", label: "Cabine Duș", icon: "🚿" },
-  { key: "mirror", label: "Oglinzi", icon: "🪞" },
+  { key: "shower",    label: "Cabine Duș",    icon: "🚿", group: "interior" },
+  { key: "partition", label: "Partiționări",   icon: "🧱", group: "interior" },
+  { key: "swingdoor", label: "Uși Batante",    icon: "🚪", group: "interior" },
+  { key: "sliding",   label: "Uși Culisante", icon: "🪟", group: "interior" },
+  { key: "mirror",    label: "Oglinzi",        icon: "🪞", group: "interior" },
+  { key: "balustrade",label: "Balustrade",     icon: "🏗️", group: "exterior" },
+  { key: "canopy",    label: "Copertine",      icon: "⛱️", group: "exterior" },
+  { key: "pergola",   label: "Pergole",        icon: "🏡", group: "exterior" },
 ];
 
-// ── Buyer Home ─────────────────────────────────────
-type BuyerHomeProps = {
-  buyerLevel?: BuyerLevel;
-  userName?: string;
+// ── Buyer level context ────────────────────────────
+const buyerContext: Record<BuyerLevel, { tier: string; subtitle: string; color: string }> = {
+  public:     { tier: "Public",   subtitle: "Prețuri de listă",       color: "#6B7280" },
+  verified:   { tier: "Verified", subtitle: "Prețuri personalizate active", color: "#1D4ED8" },
+  contracted: { tier: "Contracted", subtitle: "Comenzi automate · Proforme instant", color: "#065F46" },
 };
 
-export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel" }: BuyerHomeProps) {
+// ── Top Nav (simplificat) ──────────────────────────
+function TopNav({ userName, buyerLevel }: { userName: string; buyerLevel: BuyerLevel }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-neutral-200">
+      <div className="flex items-center gap-6">
+        <span className="font-semibold text-neutral-900 text-sm">GLAZEO</span>
+        <nav className="hidden sm:flex items-center gap-4">
+          <span className="text-sm font-medium text-[#1A56DB]">Workspace</span>
+          <span className="text-sm text-neutral-500 cursor-pointer hover:text-neutral-700 transition-colors">Projects</span>
+        </nav>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-neutral-400 hidden sm:inline">🔍</span>
+        <span className="text-sm text-neutral-400 cursor-pointer">🔔</span>
+        <span className="w-7 h-7 rounded-full bg-[#EFF6FF] flex items-center justify-center text-xs font-medium text-[#1A56DB]">
+          {userName[0]}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Today Summary ──────────────────────────────────
+function TodaySummary({ expiringQuotes, activeOrders, activeProjects }: {
+  expiringQuotes: number; activeOrders: number; activeProjects: number;
+}) {
+  const items = [];
+  if (expiringQuotes > 0) items.push(`${expiringQuotes} ${expiringQuotes === 1 ? "ofertă expiră" : "oferte expiră"}`);
+  if (activeOrders > 0) items.push(`${activeOrders} ${activeOrders === 1 ? "comandă" : "comenzi"} în producție`);
+  if (activeProjects > 0) items.push(`${activeProjects} ${activeProjects === 1 ? "proiect activ" : "proiecte active"}`);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="text-sm text-neutral-500 mb-6">
+      Today · {items.join(" · ")}
+    </div>
+  );
+}
+
+// ── Recommended Action Card ────────────────────────
+function RecommendedAction({ quote, onAction }: { quote: QuoteSummary; onAction: () => void }) {
+  return (
+    <div className="bg-[#FFF8E1] rounded-xl border border-[#F59E0B]/30 p-5 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p className="text-xs font-semibold text-[#B45309] uppercase tracking-wider mb-1">Recommended Action</p>
+        <p className="text-neutral-800 font-medium">
+          Oferta <span className="font-semibold">{quote.number}</span> — {quote.clientName} — expiră{" "}
+          {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString("ro-RO") : "curând"}.
+        </p>
+      </div>
+      <button onClick={onAction}
+        className="px-4 py-2 text-sm font-medium bg-[#F59E0B] text-[#7C2D12] rounded-lg hover:bg-[#D97706] hover:text-white transition-colors flex-shrink-0">
+        Revizuiește oferta
+      </button>
+    </div>
+  );
+}
+
+// ── Knowledge Card ─────────────────────────────────
+function KnowledgeCard() {
+  return (
+    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex items-center justify-between hover:border-[#1A56DB]/30 transition-colors cursor-pointer">
+      <div className="flex items-center gap-3">
+        <span className="text-lg">📚</span>
+        <div>
+          <p className="text-xs font-medium text-neutral-400 uppercase">Knowledge</p>
+          <p className="text-sm font-medium text-neutral-800">Cum alegi sticla laminată potrivită?</p>
+        </div>
+      </div>
+      <span className="text-neutral-400">→</span>
+    </div>
+  );
+}
+
+// ── Main ───────────────────────────────────────────
+export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel" }: {
+  buyerLevel?: BuyerLevel; userName?: string;
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      // Simulăm o eroare random (5%) pentru a testa error state
       if (Math.random() < 0.05) { setError(true); }
       setLoading(false);
     }, 800);
@@ -55,16 +133,19 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
   }, []);
 
   const greeting = new Date().getHours() < 12 ? "Bună dimineața" : new Date().getHours() < 18 ? "Bună ziua" : "Bună seara";
+  const ctx = buyerContext[buyerLevel];
+  const navigate = (path: string) => console.log(`[Mock] Navigate to: ${path}`);
 
-  // ── Error State ──
+  // ── Error ──
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <span className="text-4xl mb-4 block">⚠️</span>
-          <h2 className="text-xl font-semibold text-neutral-900 mb-2">Nu am putut încărca datele</h2>
-          <p className="text-neutral-500 mb-4">E posibil să fie o problemă temporară. Datele tale sunt în siguranță.</p>
-          <div className="flex gap-3 justify-center">
+      <div className="min-h-screen bg-[#F8F9FB]">
+        <TopNav userName={userName} buyerLevel={buyerLevel} />
+        <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 52px)" }}>
+          <div className="text-center max-w-md px-4">
+            <span className="text-4xl mb-4 block">⚠️</span>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-2">Nu am putut încărca datele</h2>
+            <p className="text-neutral-500 mb-4">E posibil să fie o problemă temporară. Datele tale sunt în siguranță.</p>
             <button onClick={() => { setError(false); setLoading(true); setTimeout(() => setLoading(false), 800); }}
               className="px-4 py-2 text-sm font-medium bg-[#1A56DB] text-white rounded-lg hover:bg-[#1E40AF] transition-colors">
               Încearcă din nou
@@ -75,15 +156,16 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
     );
   }
 
-  // ── Loading State ──
+  // ── Loading ──
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8F9FB]">
+        <TopNav userName={userName} buyerLevel={buyerLevel} />
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="mb-8">
-            <div className="h-4 w-32 bg-neutral-200 rounded animate-pulse mb-2" />
+            <div className="h-4 w-24 bg-neutral-200 rounded animate-pulse mb-2" />
             <div className="h-8 w-72 bg-neutral-200 rounded animate-pulse mb-1" />
-            <div className="h-5 w-48 bg-neutral-200 rounded animate-pulse" />
+            <div className="h-5 w-64 bg-neutral-200 rounded animate-pulse" />
           </div>
           <Skeleton count={5} />
         </div>
@@ -91,23 +173,38 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
     );
   }
 
-  const navigate = (path: string) => console.log(`[Mock] Navigate to: ${path}`);
+  const expiringQuotes = MOCK_QUOTES.filter(q => q.status === "sent" && q.validUntil && new Date(q.validUntil).getTime() - Date.now() < 3 * 24 * 60 * 60 * 1000);
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
+      <TopNav userName={userName} buyerLevel={buyerLevel} />
+
       <div className="max-w-6xl mx-auto px-4 py-8">
 
         {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 gap-3">
           <div>
-            <h2 className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">Home Workspace</h2>
             <h1 className="text-2xl font-semibold text-neutral-900">{greeting}, {userName}.</h1>
-            <p className="text-neutral-500 mt-1">Ce dorești să faci?</p>
           </div>
-          <BuyerLevelBadge level={buyerLevel} />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <BuyerLevelBadge level={buyerLevel} />
+            <span className="text-xs text-neutral-500 hidden sm:inline">{ctx.subtitle}</span>
+          </div>
         </div>
 
-        {/* ── Quick Actions (variantă per buyer level) ── */}
+        {/* ── Today Summary ── */}
+        <TodaySummary
+          expiringQuotes={expiringQuotes.length}
+          activeOrders={MOCK_ORDERS.length}
+          activeProjects={MOCK_PROJECTS.filter(p => p.status === "active").length}
+        />
+
+        {/* ── Recommended Action ── */}
+        {expiringQuotes.length > 0 && buyerLevel !== "public" && (
+          <RecommendedAction quote={expiringQuotes[0]} onAction={() => navigate(`/quote/${expiringQuotes[0].id}`)} />
+        )}
+
+        {/* ── Quick Actions ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
             { label: buyerLevel === "contracted" ? "Comandă rapidă" : "Configurează", icon: "⚙️" },
@@ -136,7 +233,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
           )}
         </Section>
 
-        {/* ── OFERTE CARE NECESITĂ ACȚIUNE ── */}
+        {/* ── OFERTE ── */}
         {MOCK_QUOTES.length > 0 && (
           <Section title="Oferte care necesită acțiune" badge={MOCK_QUOTES.length}>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -144,6 +241,7 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
                 <QuoteCard key={q.id} quote={q}
                   onAccept={buyerLevel !== "public" ? () => alert(`✅ Ofertă ${q.number} acceptată!`) : undefined}
                   onReject={() => alert(`❌ Ofertă ${q.number} respinsă.`)}
+                  onCompare={() => alert(`📊 Compară oferta ${q.number} cu alte opțiuni.`)}
                   onClick={() => navigate(`/quote/${q.id}`)} />
               ))}
             </div>
@@ -164,12 +262,17 @@ export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel"
           <ConfiguratorGrid items={CONFIGURATORS} onSelect={(item) => navigate(`/configurator/${item.key}`)} />
         </Section>
 
-        {/* ── CTA per buyer level (excepție: Public nu vede buton de comandă) ── */}
+        {/* ── Knowledge ── */}
+        <div className="mt-8">
+          <KnowledgeCard />
+        </div>
+
+        {/* ── Contracted banner ── */}
         {buyerLevel === "contracted" && (
-          <div className="mt-6 p-4 bg-[#EFF6FF] rounded-xl border border-[#1A56DB]/20 flex items-center justify-between">
+          <div className="mt-6 p-4 bg-[#ECFDF5] rounded-xl border border-[#059669]/20 flex items-center justify-between">
             <div>
-              <p className="font-medium text-[#1D4ED8]">Acces complet</p>
-              <p className="text-sm text-neutral-600">Poți comanda direct. Proformele se emit automat.</p>
+              <p className="font-medium text-[#065F46]">Contracted Buyer</p>
+              <p className="text-sm text-neutral-600">Comenzi automate · Proforme instant · Discount activ</p>
             </div>
             <span className="text-2xl">🚀</span>
           </div>
