@@ -3,7 +3,7 @@
 // Interactive mock state: Configuration → Quote → Accept → Order
 // ══════════════════════════════════════════════
 import { useState, useReducer } from "react";
-import { Section, Button, StatusBadge, EmptyState } from "../../primitives";
+import { Section, StatusBadge, EmptyState } from "../../primitives";
 import { Card } from "../../primitives";
 import type { StatusKey } from "../../foundation/tokens";
 
@@ -156,10 +156,10 @@ function initialState(): ProjectState {
 }
 
 // ── Component ───────────────────────────────────────
-export default function ProjectWorkspace({ projectId, onBack }: { projectId: string; onBack: () => void }) {
+export default function ProjectWorkspace({ onBack }: { projectId: string; onBack: () => void }) {
   const [state, dispatch] = useReducer(reducer, null, initialState);
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(false); // simulat pentru acțiuni
+  const [loading] = useState(false);
 
   const tabs = ["Overview", "Configurări", "Oferte", "Comenzi"];
 
