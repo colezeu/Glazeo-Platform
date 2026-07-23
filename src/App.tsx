@@ -2,32 +2,32 @@
 // GLAZEO Platform — App Shell (Gate 4)
 // Landing → Auth → Workspace → Project
 // ══════════════════════════════════════════════
-import { useState, useEffect } from "react";
-import { supabase } from "./app/supabase";
-import LandingPage from "./features/buyer/LandingPage";
-import AuthPage from "./features/buyer/AuthPage";
-import BuyerHome from "./features/buyer/BuyerHome";
-import ProjectWorkspace from "./features/buyer/ProjectWorkspace";
-import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback";
-import { Analytics } from "./app/feedback";
-import type { BuyerLevel } from "./foundation/tokens";
+import { useState, useEffect } from "react"
+import type { AuthGateway } from "./auth/types"
+import LandingPage from "./features/buyer/LandingPage"
+import AuthPage from "./features/buyer/AuthPage"
+import BuyerHome from "./features/buyer/BuyerHome"
+import ProjectWorkspace from "./features/buyer/ProjectWorkspace"
+import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback"
+import { Analytics } from "./app/feedback"
+import type { BuyerLevel } from "./foundation/tokens"
 
-type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string };
+type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string }
 
-export default function App() {
-  const [view, setView] = useState<View>({ screen: "landing" });
-  const [level, setLevel] = useState<BuyerLevel>("verified");
-  const [initializing, setInitializing] = useState(true);
+export default function App({ auth }: { auth: AuthGateway }) {
+  const [view, setView] = useState<View>({ screen: "landing" })
+  const [level, setLevel] = useState<BuyerLevel>("verified")
+  const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setView({ screen: "home" });
-        Analytics.login();
+    auth.getCurrentUser().then((user) => {
+      if (user) {
+        setView({ screen: "home" })
+        Analytics.login()
       }
-      setInitializing(false);
-    });
-  }, []);
+      setInitializing(false)
+    })
+  }, [auth])
 
   if (initializing) {
     return (
@@ -37,7 +37,7 @@ export default function App() {
           <p className="text-neutral-500 text-sm">Se încarcă...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -54,7 +54,7 @@ export default function App() {
               </button>
             ))}
             <button
-              onClick={async () => { await supabase.auth.signOut(); setView({ screen: "landing" }); }}
+              onClick={async () => { await auth.signOut(); setView({ screen: "landing" }); }}
               className="px-3 py-1.5 text-xs font-medium bg-[#FEF2F2] text-[#991B1B] rounded-lg hover:bg-[#FEE2E2] border border-[#EF4444]/30">
               Logout
             </button>
@@ -62,10 +62,10 @@ export default function App() {
         )}
 
         {view.screen === "landing" && (
-          <LandingPage onAuthenticated={() => { Analytics.signup(); setView({ screen: "home" }); }} />
+          <LandingPage auth={auth} onAuthenticated={() => { Analytics.signup(); setView({ screen: "home" }); }} />
         )}
         {view.screen === "auth" && (
-          <AuthPage onAuthenticated={() => setView({ screen: "home" })} />
+          <AuthPage auth={auth} onAuthenticated={() => setView({ screen: "home" })} />
         )}
         {view.screen === "home" && (
           <BuyerHome
@@ -86,5 +86,5 @@ export default function App() {
         <AnalyticsDebug />
       </div>
     </GlazeoErrorBoundary>
-  );
+  )
 }

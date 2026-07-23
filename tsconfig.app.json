@@ -20,7 +20,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"] }
   },
   "include": ["src"]
 }

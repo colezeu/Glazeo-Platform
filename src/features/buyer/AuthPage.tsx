@@ -2,66 +2,58 @@
 // GLAZEO — Auth Page
 // Email login/logout + auto-create profile + org
 // ══════════════════════════════════════════════
-import { useState, useEffect } from "react";
-import { supabase } from "../../app/supabase";
+import { useState, useEffect } from "react"
+import type { AuthGateway } from "../../auth/types"
 
 type AuthPageProps = {
-  onAuthenticated: () => void;
-};
+  auth: AuthGateway
+  onAuthenticated: () => void
+}
 
-export default function AuthPage({ onAuthenticated }: AuthPageProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [mode, setMode] = useState<"login" | "signup">("login");
+export default function AuthPage({ auth, onAuthenticated }: AuthPageProps) {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [mode, setMode] = useState<"login" | "signup">("login")
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) onAuthenticated();
-    });
-  }, [onAuthenticated]);
+    auth.getCurrentUser().then((user) => {
+      if (user) onAuthenticated()
+    })
+  }, [auth, onAuthenticated])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
-    const fn = mode === "login"
-      ? supabase.auth.signInWithPassword({ email, password })
-      : supabase.auth.signUp({ email, password });
+    try {
+      const user = mode === "login"
+        ? await auth.signIn(email, password)
+        : await auth.signUp(email, password)
 
-    const { data, error: err } = await fn;
+      if (mode === "signup" && user) {
+        const key = `profile_created_${user.id}`
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, "1")
 
-    if (err) {
-      setError(err.message);
-      setLoading(false);
-      return;
-    }
-
-    if (data.user) {
-      const key = `profile_created_${data.user.id}`;
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1");
-
-        // Atomic onboarding via RPC
-        const { error: rpcErr } = await supabase.rpc("rpc_initialize_account", {
-          p_user_id: data.user.id,
-          p_email: data.user.email ?? email,
-          p_full_name: email.split("@")[0],
-        });
-
-        if (rpcErr) {
-          console.error("Onboarding failed:", rpcErr);
-          // Fallback: user can still use the app, just won't have demo data
+          try {
+            await auth.registerAccount(user.id, user.email ?? email)
+          } catch (rpcErr) {
+            console.error("Onboarding failed:", rpcErr)
+            // Fallback: user can still use the app, just won't have demo data
+          }
         }
       }
 
-      onAuthenticated();
+      onAuthenticated()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false);
-  };
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center px-4">
@@ -117,5 +109,5 @@ export default function AuthPage({ onAuthenticated }: AuthPageProps) {
         </form>
       </div>
     </div>
-  );
+  )
 }

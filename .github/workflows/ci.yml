@@ -28,8 +28,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
 
-      # Build + serve locally, then test against the build (not Vercel)
-      - run: npm run build
+      # playwright webServer handles build:e2e + serve
       - run: npx playwright test
         env:
           CI: "true"

@@ -1,47 +1,46 @@
 // ══════════════════════════════════════════════
 // GLAZEO — Landing Page (neautentificat)
 // ══════════════════════════════════════════════
-import { useState } from "react";
-import { supabase } from "../../app/supabase";
+import { useState } from "react"
+import type { AuthGateway } from "../../auth/types"
 
-export default function LandingPage({ onAuthenticated }: { onAuthenticated: () => void }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showDemo, setShowDemo] = useState(false);
+export default function LandingPage({
+  auth,
+  onAuthenticated,
+}: {
+  auth: AuthGateway
+  onAuthenticated: () => void
+}) {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [showDemo, setShowDemo] = useState(false)
 
   const handleStart = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
-    const { data, error: err } = await supabase.auth.signUp({ email, password });
-
-    if (err) {
-      // If user exists, try sign in
-      const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginErr) {
-        setError(loginErr.message);
-        setLoading(false);
-        return;
-      }
-    }
-
-    if (data.user) {
-      const key = `profile_created_${data.user.id}`;
+    try {
+      const user = await auth.signUp(email, password)
+      const key = `profile_created_${user.id}`
       if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1");
-        await supabase.rpc("rpc_initialize_account", {
-          p_user_id: data.user.id,
-          p_email: data.user.email ?? email,
-          p_full_name: email.split("@")[0],
-        });
+        sessionStorage.setItem(key, "1")
+        await auth.registerAccount(user.id, user.email ?? email)
       }
-      onAuthenticated();
+      onAuthenticated()
+    } catch {
+      // If user exists, try sign in
+      try {
+        await auth.signIn(email, password)
+        onAuthenticated()
+      } catch (loginErr) {
+        setError(loginErr instanceof Error ? loginErr.message : String(loginErr))
+      }
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
@@ -158,5 +157,5 @@ export default function LandingPage({ onAuthenticated }: { onAuthenticated: () =
         </p>
       </div>
     </div>
-  );
+  )
 }
