@@ -1,5 +1,9 @@
 node_modules
 dist
 .env
-*.local
+.env.*
+!.env.example
 .vercel
+test-results/
+e2e/review/
+playwright-report/

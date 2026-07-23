@@ -1,9 +1,8 @@
 // ══════════════════════════════════════════════
-// GLAZEO Buyer — Home Workspace v1.1
+// GLAZEO Buyer — Home Workspace v1.2
 // Gate 1: Mock data. Focus: "next decision", not "what exists"
 // ══════════════════════════════════════════════
-import { useState, useEffect } from "react";
-import { Section, Skeleton, EmptyState, BuyerLevelBadge } from "../../primitives";
+import { Section, EmptyState, BuyerLevelBadge } from "../../primitives";
 import { ProjectCard, QuoteCard, OrderCard, ConfiguratorGrid } from "../../domain";
 import type { ProjectSummary, QuoteSummary, OrderSummary, ConfiguratorItem } from "../../domain";
 import type { BuyerLevel } from "../../foundation/tokens";
@@ -138,57 +137,9 @@ function KnowledgeCard() {
 export default function BuyerHome({ buyerLevel = "verified", userName = "Cornel", onNavigateProject }: {
   buyerLevel?: BuyerLevel; userName?: string; onNavigateProject?: (projectId: string) => void;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (Math.random() < 0.05) { setError(true); }
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(t);
-  }, []);
-
   const greeting = new Date().getHours() < 12 ? "Bună dimineața" : new Date().getHours() < 18 ? "Bună ziua" : "Bună seara";
   const ctx = buyerContext[buyerLevel];
   const navigate = (path: string) => console.log(`[Mock] Navigate to: ${path}`);
-
-  // ── Error ──
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB]">
-        <TopNav userName={userName} onProjectsClick={() => onNavigateProject?.("p1")} />
-        <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 52px)" }}>
-          <div className="text-center max-w-md px-4">
-            <span className="text-4xl mb-4 block">⚠️</span>
-            <h2 className="text-xl font-semibold text-neutral-900 mb-2">Nu am putut încărca datele</h2>
-            <p className="text-neutral-500 mb-4">E posibil să fie o problemă temporară. Datele tale sunt în siguranță.</p>
-            <button onClick={() => { setError(false); setLoading(true); setTimeout(() => setLoading(false), 800); }}
-              className="px-4 py-2 text-sm font-medium bg-[#1A56DB] text-white rounded-lg hover:bg-[#1E40AF] transition-colors">
-              Încearcă din nou
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Loading ──
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FB]">
-        <TopNav userName={userName} onProjectsClick={() => onNavigateProject?.("p1")} />
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="mb-8">
-            <div className="h-4 w-24 bg-neutral-200 rounded animate-pulse mb-2" />
-            <div className="h-8 w-72 bg-neutral-200 rounded animate-pulse mb-1" />
-            <div className="h-5 w-64 bg-neutral-200 rounded animate-pulse" />
-          </div>
-          <Skeleton count={5} />
-        </div>
-      </div>
-    );
-  }
 
   const expiringQuotes = MOCK_QUOTES.filter(q => q.status === "sent" && q.validUntil && new Date(q.validUntil).getTime() - Date.now() < 3 * 24 * 60 * 60 * 1000);
 
