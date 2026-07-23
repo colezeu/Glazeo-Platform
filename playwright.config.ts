@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const IS_CI = !!process.env.CI;
 
+// Tests always run against the E2E build (MockAuthGateway, zero Supabase).
+// CI builds fresh; locally reuses existing dist if available.
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -13,9 +15,7 @@ export default defineConfig({
   ],
   outputDir: "test-results",
   use: {
-    // In CI: test against locally built + served dist (the actual commit)
-    // Locally: test against Vite dev server
-    baseURL: IS_CI ? "http://localhost:4173" : "http://localhost:5173",
+    baseURL: "http://localhost:4173",
     trace: "on-first-retry",
     screenshot: "on",
     video: "on",
@@ -31,22 +31,12 @@ export default defineConfig({
       use: { ...devices["iPhone 14"] },
     },
   ],
-  // CI: build + serve the production build locally
-  // Local: use Vite dev server
-  webServer: IS_CI
-    ? [
-        {
-          command: "npm run build:e2e && npx vite preview --port 4173 --host 0.0.0.0",
-          url: "http://localhost:4173",
-          reuseExistingServer: false,
-          timeout: 60_000,
-        },
-      ]
-    : [
-        {
-          command: "npm run dev",
-          url: "http://localhost:5173",
-          reuseExistingServer: true,
-        },
-      ],
+  webServer: [
+    {
+      command: "npm run build:e2e && npx vite preview --port 4173 --host 0.0.0.0",
+      url: "http://localhost:4173",
+      reuseExistingServer: !IS_CI,
+      timeout: 60_000,
+    },
+  ],
 });

@@ -14,12 +14,12 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Home Workspace is visible
-    await expect(page.locator("text=Home Workspace")).toBeVisible();
+    // Home Workspace loaded — verify UI is visible
+    await expect(page.locator("text=Proiecte recente")).toBeVisible();
     await expect(page.locator("text=Recommended Action")).toBeVisible();
 
-    // Click first project
-    await page.locator("text=Vila Popescu").first().click();
+    // Click first project (heading in clickable card)
+    await page.getByRole("heading", { name: "Vila Popescu" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Project Workspace loaded
@@ -38,11 +38,11 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.waitForLoadState("networkidle");
 
     // Navigate to project
-    await page.locator("text=Vila Popescu").first().click();
+    await page.getByRole("heading", { name: "Vila Popescu" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Switch to Configurări tab
-    await page.locator("text=Configurări").click();
+    await page.locator("button:has-text('Configurări')").click();
     await page.waitForTimeout(500);
 
     // Click "Solicită ofertă" on first draft config
@@ -55,9 +55,9 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await expect(page.locator("text=Read-only")).toBeVisible();
 
     // Switch to Oferte tab — new quote should exist
-    await page.locator("text=Oferte").click();
+    await page.locator("button:has-text('Oferte')").click();
     await page.waitForTimeout(500);
-    await expect(page.locator("text=OF-2026-")).toBeVisible();
+    await expect(page.locator("text=OF-2026-").first()).toBeVisible();
 
     await page.screenshot({ path: `${REVIEW_DIR}/02-config-request-quote.png`, fullPage: true });
   });
@@ -70,11 +70,11 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.waitForLoadState("networkidle");
 
     // Navigate to project
-    await page.locator("text=Vila Popescu").first().click();
+    await page.getByRole("heading", { name: "Vila Popescu" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Switch to Oferte tab
-    await page.locator("text=Oferte").click();
+    await page.locator("button:has-text('Oferte')").click();
     await page.waitForTimeout(500);
 
     // Click Accept on OF-2026-0042 (initial sent quote)
@@ -92,9 +92,9 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.waitForTimeout(500);
 
     // Should switch to Comenzi tab
-    await expect(page.locator("text=Comenzi")).toBeVisible();
+    await expect(page.locator("text=Comenzi").first()).toBeVisible();
     // Order should exist
-    await expect(page.locator("text=CMD-2026-")).toBeVisible();
+    await expect(page.locator("text=CMD-2026-").first()).toBeVisible();
     // Timeline should show snapshot info
     await expect(page.locator("text=Ofertă:")).toBeVisible();
 
@@ -108,11 +108,11 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await page.locator("text=Vila Popescu").first().click();
+    await page.getByRole("heading", { name: "Vila Popescu" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Configurări tab
-    await page.locator("text=Configurări").click();
+    await page.locator("button:has-text('Configurări')").click();
     await page.waitForTimeout(500);
 
     // Click Duplică on first config
@@ -122,7 +122,7 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.waitForTimeout(300);
 
     // Should see v4 in the list
-    await expect(page.locator("text=v4")).toBeVisible();
+    await expect(page.locator("text=v4").first()).toBeVisible();
 
     await page.screenshot({ path: `${REVIEW_DIR}/04-duplicate-config.png`, fullPage: true });
   });
@@ -134,7 +134,7 @@ test.describe("Gate 2 — Critical Business Flows", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await page.locator("text=Vila Popescu").first().click();
+    await page.getByRole("heading", { name: "Vila Popescu" }).first().click();
     await page.waitForLoadState("networkidle");
 
     // Cycle through all tabs
@@ -151,8 +151,7 @@ test.describe("Gate 2 — Critical Business Flows", () => {
 
     // Back to Home
     await page.locator("text=← Workspace").click();
-    await page.waitForTimeout(300);
-    await expect(page.locator("text=Home Workspace")).toBeVisible();
+    await expect(page.locator("text=Proiecte recente")).toBeVisible({ timeout: 10000 });
 
     await page.screenshot({ path: `${REVIEW_DIR}/05-tab-navigation.png`, fullPage: true });
   });
