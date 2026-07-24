@@ -8,7 +8,7 @@ const INTENTS = [
     key: "meeting-room-partition",
     label: "Compartimentare sală de ședințe",
     description: "Perete de sticlă pentru meeting room — păstrezi lumina naturală și delimitarea vizuală.",
-    available: false, // Devine true la 4B
+    available: true, // 4B: DM-001 vertical slice
   },
   {
     key: "facade",
@@ -24,7 +24,13 @@ const INTENTS = [
   },
 ]
 
-export default function DecisionMakerHome({ userName = "Arhitect" }: { userName?: string }) {
+export default function DecisionMakerHome({
+  userName = "Arhitect",
+  onNavigateDecision,
+}: {
+  userName?: string
+  onNavigateDecision?: (key: string) => void
+}) {
   const greeting = new Date().getHours() < 12 ? "Bună dimineața" : new Date().getHours() < 18 ? "Bună ziua" : "Bună seara"
 
   return (
@@ -59,6 +65,7 @@ export default function DecisionMakerHome({ userName = "Arhitect" }: { userName?
             {INTENTS.map((intent) => (
               <div
                 key={intent.key}
+                onClick={intent.available && onNavigateDecision ? () => onNavigateDecision(intent.key) : undefined}
                 className={`flex items-start gap-4 p-4 rounded-xl border transition-colors ${
                   intent.available
                     ? "bg-white border-[#E5E7EB] hover:border-[#1A56DB]/40 hover:bg-[#F8FAFD] cursor-pointer"
