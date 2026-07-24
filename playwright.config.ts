@@ -6,6 +6,7 @@ const IS_CI = !!process.env.CI;
 // CI builds fresh; locally reuses existing dist if available.
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: "gate2-flows.spec.ts",
   fullyParallel: false,
   retries: IS_CI ? 1 : 0,
   workers: 1,

@@ -9,6 +9,7 @@ import { resolveExperience } from "./experience/resolveExperience"
 import LandingPage from "./features/buyer/LandingPage"
 import AuthPage from "./features/buyer/AuthPage"
 import BuyerHome from "./features/buyer/BuyerHome"
+import DecisionMakerHome from "./features/decision-maker/DecisionMakerHome"
 import ProjectWorkspace from "./features/buyer/ProjectWorkspace"
 import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback"
 import { Analytics } from "./app/feedback"
@@ -257,15 +258,18 @@ export default function App({ auth, experience }: { auth: AuthGateway; experienc
           />
         )}
 
-        {/* ── Placeholder: experiențe neimplementate ── */}
-        {resolvedExperience !== "buyer" && view.screen === "home" && (
+        {/* ── Decision Maker Experience ── */}
+        {resolvedExperience === "decision_maker" && view.screen === "home" && (
+          <DecisionMakerHome />
+        )}
+
+        {/* ── Placeholder: experiențe neimplementate (builder, admin) ── */}
+        {(resolvedExperience === "builder" || resolvedExperience === "admin") && view.screen === "home" && (
           <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
             <div className="text-center max-w-md px-4">
               <span className="text-4xl mb-4 block">🚧</span>
               <h2 className="text-xl font-semibold text-neutral-900 mb-2">
-                {resolvedExperience === "decision_maker" ? "Decision Maker" :
-                 resolvedExperience === "builder" ? "Builder" :
-                 resolvedExperience === "admin" ? "Admin" : resolvedExperience}
+                {resolvedExperience === "builder" ? "Builder" : "Admin"}
               </h2>
               <p className="text-neutral-500">
                 Această experiență nu este încă disponibilă. Revino curând.
