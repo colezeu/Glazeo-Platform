@@ -33,8 +33,8 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
 
-  e2e-buyer:
-    name: E2E Buyer (10 tests)
+  e2e:
+    name: E2E Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,32 +42,21 @@ jobs:
         with: { node-version: "20" }
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
+
+      # Buyer E2E: gate2-flows (10 tests)
       - run: npm run test:e2e:buyer
         env:
           CI: "true"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report-buyer
-          path: playwright-report/
-          retention-days: 7
 
-  e2e-dm:
-    name: E2E Decision Maker (4 tests)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20" }
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Decision Maker E2E: decision-maker-home (4 tests)
       - run: npm run test:e2e:dm
         env:
           CI: "true"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-dm
+          name: playwright-report
           path: playwright-report/
           retention-days: 7
 
