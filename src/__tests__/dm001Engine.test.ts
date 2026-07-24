@@ -192,3 +192,26 @@ describe("DM-001 Engine — completeness", () => {
     expect(options.map((o) => o.id).sort()).toEqual(["aluminum", "frameless", "spider"])
   })
 })
+
+// ── Decision Record immutability ────────────────────
+
+describe("DM-001 Engine — Decision Record immutability", () => {
+  it("is independent copy — modifying context after creation does not change the record", () => {
+    const ctx: DM001Context = {
+      ceilingType: "structural",
+      doorTraffic: "moderate",
+      acousticNeed: "visual_only",
+      noiseNearby: false,
+    }
+    const options = evaluateOptions(ctx)
+    const record = createDecisionRecord(ctx, options, "frameless")
+
+    // Modifică contextul după crearea recordului
+    ctx.acousticNeed = "confidential"
+    ctx.ceilingType = "suspended"
+
+    // Recordul rămâne neschimbat
+    expect(record.context.acousticNeed).toBe("visual_only")
+    expect(record.context.ceilingType).toBe("structural")
+  })
+})

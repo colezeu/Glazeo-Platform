@@ -166,8 +166,8 @@ export function createDecisionRecord(
   return {
     id,
     decidedAt: new Date().toISOString(),
-    context,
-    options,
+    context: { ...context },
+    options: options.map((o) => ({ ...o, criteria: { ...o.criteria }, pros: [...o.pros], cons: [...o.cons], tradeoffs: [...o.tradeoffs] })),
     selectedOptionId,
     acceptedTradeoffs,
     lessons,
