@@ -15,6 +15,14 @@ export default defineConfig(({ mode }) => ({
           import.meta.url,
         ),
       ),
+      "experience-gateway": fileURLToPath(
+        new URL(
+          mode === "e2e"
+            ? "./src/experience/MockExperienceGateway.entry.ts"
+            : "./src/experience/LegacyBuyerExperienceGateway.entry.ts",
+          import.meta.url,
+        ),
+      ),
     },
   },
   test: {

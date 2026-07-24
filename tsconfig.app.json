@@ -8,7 +8,6 @@
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
@@ -16,12 +15,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"] }
+    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"], "experience-gateway": ["./src/experience/LegacyBuyerExperienceGateway.entry.ts"] }
   },
   "include": ["src"]
 }
