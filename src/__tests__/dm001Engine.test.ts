@@ -2,8 +2,8 @@
 // GLAZEO — DM-001 Engine Tests (Phase 4B)
 // ══════════════════════════════════════════════
 import { describe, it, expect } from "vitest"
-import { evaluateOptions, createDecisionRecord } from "../features/decision-maker/dm001Engine"
-import type { DM001Context } from "../features/decision-maker/dm001Data"
+import { evaluateOptions, createDecisionRecord } from "../features/decision-maker/dm001/dm001Engine"
+import type { DM001Context } from "../features/decision-maker/dm001/dm001Data"
 
 // ── Frameless recommended ──────────────────────────
 

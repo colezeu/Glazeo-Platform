@@ -5,21 +5,21 @@
 
 const INTENTS = [
   {
-    key: "meeting-room-partition",
+    key: "meeting_room_partition",
     label: "Compartimentare sală de ședințe",
     description: "Perete de sticlă pentru meeting room — păstrezi lumina naturală și delimitarea vizuală.",
     available: true, // 4B: DM-001 vertical slice
   },
   {
+    key: "glass_balustrade",
+    label: "Balustradă din sticlă",
+    description: "Protecție perimetrală pentru terase, scări, balcoane — siguranță fără compromis estetic.",
+    available: true, // DM-002
+  },
+  {
     key: "facade",
     label: "Fațadă",
     description: "Fațadă ventilată, curtain wall sau stick system.",
-    available: false,
-  },
-  {
-    key: "balustrade",
-    label: "Balustradă",
-    description: "Protecție perimetrală pentru terase, scări, balcoane.",
     available: false,
   },
 ]
