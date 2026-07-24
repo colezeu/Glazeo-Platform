@@ -43,8 +43,13 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
 
-      # playwright webServer handles build:e2e + serve
-      - run: npx playwright test
+      # Buyer E2E: gate2-flows (10 tests)
+      - run: npm run test:e2e:buyer
+        env:
+          CI: "true"
+
+      # Decision Maker E2E: decision-maker-home (4 tests)
+      - run: npm run test:e2e:dm
         env:
           CI: "true"
 

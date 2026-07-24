@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "auth-gateway": fileURLToPath(
         new URL(
-          mode === "e2e"
+          mode === "e2e" || mode === "e2e-dm"
             ? "./src/auth/MockAuthGateway.ts"
             : "./src/auth/SupabaseAuthGateway.ts",
           import.meta.url,
@@ -17,9 +17,11 @@ export default defineConfig(({ mode }) => ({
       ),
       "experience-gateway": fileURLToPath(
         new URL(
-          mode === "e2e"
-            ? "./src/experience/MockExperienceGateway.entry.ts"
-            : "./src/experience/LegacyBuyerExperienceGateway.entry.ts",
+          mode === "e2e-dm"
+            ? "./src/experience/MockDecisionMakerExperienceGateway.entry.ts"
+            : mode === "e2e"
+              ? "./src/experience/MockExperienceGateway.entry.ts"
+              : "./src/experience/LegacyBuyerExperienceGateway.entry.ts",
           import.meta.url,
         ),
       ),
