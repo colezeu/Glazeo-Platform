@@ -47,18 +47,31 @@ interface ExperienceProfile {
   /** Toate experiențele disponibile pentru acest utilizator (cross-org). */
   availableExperiences: ExperienceType[]
 
-  /** Experiența implicită sugerată de sistem. */
-  defaultExperience: ExperienceType
-
   /** Ultima experiență activă (persisted per user, cross-session). */
   lastActiveExperience: ExperienceType | null
 
-  /** Per organizație: experiențele disponibile în fiecare org. */
+  /** Per organizație: experiențele disponibile în fiecare org. Subset al availableExperiences. */
   organizationRoles: Record<string, ExperienceType[]>
 }
 ```
 
 `AuthUser` rămâne neschimbat: `{ id: string; email: string | null }`. Rolul nu aparține identității — aparține profilului de experiență.
+
+**Notă:** `defaultExperience` a fost eliminat în v2. Este un câmp mort în Phase 1 — resolverul nu îl citește. Va fi reintrodus când există un use case (ex: pre-selectare în ecranul de onboarding) și teste.
+
+#### ExperienceProfileResult (nou — separă "found" de "missing")
+
+```typescript
+type ExperienceProfileResult =
+  | { status: "found"; profile: ExperienceProfile }
+  | { status: "missing" }
+```
+
+Această separare previne confuzia între "utilizator neautentificat" și "utilizator autentificat fără profil". Gateway-ul întoarce `ExperienceProfileResult`. Composition root decide:
+
+- Fără `AuthUser` → `"unauthenticated"` (nu se ajunge la resolver)
+- `AuthUser` + `{ status: "missing" }` → `"needs_onboarding"`
+- `AuthUser` + `{ status: "found", profile }` → resolverul decide
 
 #### ExperienceResolution (discriminated union)
 
@@ -84,12 +97,14 @@ interface ExperienceContext {
 }
 
 function resolveExperience(
-  profile: ExperienceProfile,
+  result: ExperienceProfileResult,
   context: ExperienceContext
 ): ExperienceResolution
 ```
 
 **Ce NU are:** Parametru `overrides`. Nu există portiță pentru codul de producție să ceară `"admin"`. E2E-ul injectează un `ExperienceGateway` mock la composition root, nu un override în resolver.
+
+**Regulă cross-organization:** Când `activeOrganizationId` este setat, resolverul folosește **doar** `organizationRoles[activeOrganizationId]`. Dacă organizația nu are mapping (`undefined`), rezultatul este `[]` — nu se face fallback la `availableExperiences`. Un fallback cross-org ar putea expune experiențe pe care utilizatorul le are într-o altă organizație. Fără context organizațional, se folosește `availableExperiences` (lista globală).
 
 ### 3. Sursa și încărcarea ExperienceProfile
 
@@ -130,11 +145,9 @@ Pentru MVP (Phase 1): `availableExperiences` conține exact un element → regul
 
 Toate conturile create înainte de implementarea Experience Resolution nu au `ExperienceProfile`.
 
-**Regulă:** Un utilizator autentificat fără profil produce `"needs_onboarding"`, nu `"buyer"`.
+**Regulă:** Gateway-ul întoarce `{ status: "missing" }`. Resolverul produce `"needs_onboarding"`. Composition root-ul afișează un ecran de onboarding: "Your account needs to be configured."
 
-Routerul afișează un ecran de onboarding: "Your account needs to be configured. Contact Glass Associates to set up your experience."
-
-**Fallback de compatibilitate legacy:** Pentru faza de tranziție (primele zile după deploy), `MockExperienceGateway` returnează `availableExperiences: ["buyer"]` pentru TOATE conturile. Acesta este un **comportament explicit al gateway-ului mock**, nu al resolver-ului. Când trecem la Phase 2 (auth claims reale), conturile fără claims vor primi `"needs_onboarding"`, forțând migrarea.
+**Fallback de compatibilitate legacy:** Pentru faza de tranziție, `MockExperienceGateway` poate fi configurat să returneze `{ status: "found", profile: BUYER_PROFILE }` pentru toate conturile. Acesta este un comportament explicit al gateway-ului mock, nu al resolver-ului. Când trecem la Phase 2 (auth claims reale), conturile fără claims vor primi `{ status: "missing" }`, forțând migrarea.
 
 ### 7. Regula: routingul UI nu acordă permisiuni
 

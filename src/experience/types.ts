@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// GLAZEO — Experience Types (Phase 1)
+// GLAZEO — Experience Types (Phase 1, v2)
 // ADR-001: Experience Resolution
 // ══════════════════════════════════════════════
 
@@ -8,18 +8,23 @@ export type ExperienceType = "decision_maker" | "buyer" | "builder" | "admin"
 
 /** Profilul de experiență al unui utilizator. Încărcat de ExperienceGateway. */
 export interface ExperienceProfile {
-  /** Toate experiențele disponibile pentru acest utilizator. */
+  /** Toate experiențele disponibile pentru acest utilizator (cross-org). */
   availableExperiences: ExperienceType[]
-
-  /** Experiența implicită sugerată de sistem. */
-  defaultExperience: ExperienceType
 
   /** Ultima experiență activă (persisted cross-session). null = prima utilizare. */
   lastActiveExperience: ExperienceType | null
 
-  /** Per organizație: experiențele disponibile în fiecare org. */
+  /** Per organizație: experiențele disponibile în fiecare org. Subset al availableExperiences. */
   organizationRoles: Record<string, ExperienceType[]>
 }
+
+/**
+ * Rezultatul interogării ExperienceGateway.
+ * Separația found/missing previne confuzia între "neautentificat" și "fără profil".
+ */
+export type ExperienceProfileResult =
+  | { status: "found"; profile: ExperienceProfile }
+  | { status: "missing" }
 
 /** Contextul curent pentru rezoluția experienței. */
 export interface ExperienceContext {
@@ -42,9 +47,9 @@ export type ExperienceResolution =
   | { status: "resolved"; experience: ExperienceType }
 
 /**
- * Gateway pentru încărcarea ExperienceProfile.
+ * Gateway pentru încărcarea ExperienceProfileResult.
  * Pattern identic cu AuthGateway — dependency injection la composition root.
  */
 export interface ExperienceGateway {
-  getProfile(userId: string): Promise<ExperienceProfile>
+  getProfile(userId: string): Promise<ExperienceProfileResult>
 }
