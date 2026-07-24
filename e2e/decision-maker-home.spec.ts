@@ -28,9 +28,9 @@ test.describe("Decision Maker Home", () => {
     const partition = page.locator("text=Compartimentare sală de ședințe").first()
     await expect(partition).toBeVisible()
 
-    // "În curând" badge should be present for all intents
+    // "În curând" badge should be present for unavailable intents (now only 2)
     const badges = page.locator("text=În curând")
-    await expect(badges).toHaveCount(3)
+    await expect(badges).toHaveCount(2)
   })
 
   test("does not show pricing, offers, or orders", async ({ page }) => {

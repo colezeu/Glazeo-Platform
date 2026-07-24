@@ -10,12 +10,13 @@ import LandingPage from "./features/buyer/LandingPage"
 import AuthPage from "./features/buyer/AuthPage"
 import BuyerHome from "./features/buyer/BuyerHome"
 import DecisionMakerHome from "./features/decision-maker/DecisionMakerHome"
+import DecisionWorkspace from "./features/decision-maker/DecisionWorkspace"
 import ProjectWorkspace from "./features/buyer/ProjectWorkspace"
 import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback"
 import { Analytics } from "./app/feedback"
 import type { BuyerLevel } from "./foundation/tokens"
 
-type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string }
+type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string } | { screen: "dm-decision" }
 
 type InitPhase =
   | { phase: "checking_auth" }
@@ -260,7 +261,12 @@ export default function App({ auth, experience }: { auth: AuthGateway; experienc
 
         {/* ── Decision Maker Experience ── */}
         {resolvedExperience === "decision_maker" && view.screen === "home" && (
-          <DecisionMakerHome />
+          <DecisionMakerHome
+            onNavigateDecision={() => setView({ screen: "dm-decision" })}
+          />
+        )}
+        {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && (
+          <DecisionWorkspace onBack={() => setView({ screen: "home" })} />
         )}
 
         {/* ── Placeholder: experiențe neimplementate (builder, admin) ── */}
