@@ -1,9 +1,11 @@
 // ══════════════════════════════════════════════
-// GLAZEO Platform — App Shell (Gate 4)
-// Landing → Auth → Workspace → Project
+// GLAZEO Platform — App Shell (Gate 4 + Experience Resolution)
+// Landing → Auth → Experience Resolution → Workspace → Project
 // ══════════════════════════════════════════════
 import { useState, useEffect } from "react"
 import type { AuthGateway } from "./auth/types"
+import type { ExperienceGateway, ExperienceResolution } from "./experience/types"
+import { resolveExperience } from "./experience/resolveExperience"
 import LandingPage from "./features/buyer/LandingPage"
 import AuthPage from "./features/buyer/AuthPage"
 import BuyerHome from "./features/buyer/BuyerHome"
@@ -14,20 +16,29 @@ import type { BuyerLevel } from "./foundation/tokens"
 
 type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string }
 
-export default function App({ auth }: { auth: AuthGateway }) {
+export default function App({ auth, experience }: { auth: AuthGateway; experience: ExperienceGateway }) {
   const [view, setView] = useState<View>({ screen: "landing" })
   const [level, setLevel] = useState<BuyerLevel>("verified")
   const [initializing, setInitializing] = useState(true)
+  const [experienceState, setExperienceState] = useState<ExperienceResolution>({ status: "unauthenticated" })
 
   useEffect(() => {
-    auth.getCurrentUser().then((user) => {
+    auth.getCurrentUser().then(async (user) => {
       if (user) {
-        setView({ screen: "home" })
-        Analytics.login()
+        const profileResult = await experience.getProfile(user.id)
+        const resolution = resolveExperience(profileResult)
+        setExperienceState(resolution)
+
+        if (resolution.status === "resolved") {
+          setView({ screen: "home" })
+          Analytics.login()
+        }
+        // needs_onboarding, needs_selection — rămân pe landing
+        // (placeholder până la implementarea ecranelor dedicate)
       }
       setInitializing(false)
     })
-  }, [auth])
+  }, [auth, experience])
 
   if (initializing) {
     return (
@@ -39,6 +50,83 @@ export default function App({ auth }: { auth: AuthGateway }) {
       </div>
     )
   }
+
+  // ── Experience state: nu e autentificat ──
+  if (experienceState.status === "unauthenticated") {
+    return (
+      <GlazeoErrorBoundary>
+        {view.screen === "landing" && (
+          <LandingPage auth={auth} onAuthenticated={() => { Analytics.signup(); setView({ screen: "auth" }); }} />
+        )}
+        {view.screen === "auth" && (
+          <AuthPage auth={auth} onAuthenticated={() => {
+            // Re-trigger experience resolution after auth
+            auth.getCurrentUser().then(async (user) => {
+              if (user) {
+                const profileResult = await experience.getProfile(user.id)
+                const resolution = resolveExperience(profileResult)
+                setExperienceState(resolution)
+                if (resolution.status === "resolved") {
+                  setView({ screen: "home" })
+                  Analytics.login()
+                }
+              }
+            })
+          }} />
+        )}
+      </GlazeoErrorBoundary>
+    )
+  }
+
+  // ── Experience state: needs_onboarding ──
+  if (experienceState.status === "needs_onboarding") {
+    return (
+      <GlazeoErrorBoundary>
+        <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
+          <div className="text-center max-w-md px-4">
+            <span className="text-4xl mb-4 block">🔧</span>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-2">Contul tău nu este configurat</h2>
+            <p className="text-neutral-500 mb-1">{experienceState.reason}</p>
+            <p className="text-sm text-neutral-400">
+              Contactează Glass Associates pentru a-ți configura experiența.
+            </p>
+          </div>
+        </div>
+        {view.screen !== "landing" && <FeedbackWidget />}
+      </GlazeoErrorBoundary>
+    )
+  }
+
+  // ── Experience state: needs_selection ──
+  if (experienceState.status === "needs_selection") {
+    return (
+      <GlazeoErrorBoundary>
+        <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
+          <div className="text-center max-w-md px-4">
+            <span className="text-4xl mb-4 block">👤</span>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-2">Alege experiența</h2>
+            <p className="text-neutral-500 mb-4">
+              Ai mai multe experiențe disponibile. Selectează cu care vrei să intri.
+            </p>
+            <div className="flex flex-col gap-2">
+              {experienceState.available.map((exp) => (
+                <div key={exp} className="px-4 py-2 bg-white rounded-lg border border-neutral-200 text-neutral-500 text-sm">
+                  {exp === "decision_maker" ? "🏗️ Decision Maker (în curând)" :
+                   exp === "buyer" ? "🛒 Buyer" :
+                   exp === "builder" ? "🔨 Builder (în curând)" :
+                   exp === "admin" ? "⚙️ Admin (în curând)" : exp}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {view.screen !== "landing" && <FeedbackWidget />}
+      </GlazeoErrorBoundary>
+    )
+  }
+
+  // ── Experience resolved ──
+  const resolvedExperience = experienceState.experience
 
   return (
     <GlazeoErrorBoundary>
@@ -54,30 +142,42 @@ export default function App({ auth }: { auth: AuthGateway }) {
               </button>
             ))}
             <button
-              onClick={async () => { await auth.signOut(); setView({ screen: "landing" }); }}
+              onClick={async () => { await auth.signOut(); setExperienceState({ status: "unauthenticated" }); setView({ screen: "landing" }); }}
               className="px-3 py-1.5 text-xs font-medium bg-[#FEF2F2] text-[#991B1B] rounded-lg hover:bg-[#FEE2E2] border border-[#EF4444]/30">
               Logout
             </button>
           </div>
         )}
 
-        {view.screen === "landing" && (
-          <LandingPage auth={auth} onAuthenticated={() => { Analytics.signup(); setView({ screen: "home" }); }} />
-        )}
-        {view.screen === "auth" && (
-          <AuthPage auth={auth} onAuthenticated={() => setView({ screen: "home" })} />
-        )}
-        {view.screen === "home" && (
+        {/* ── Buyer Experience (singura implementată) ── */}
+        {resolvedExperience === "buyer" && view.screen === "home" && (
           <BuyerHome
             buyerLevel={level}
             onNavigateProject={(projectId) => setView({ screen: "project", projectId })}
           />
         )}
-        {view.screen === "project" && (
+        {resolvedExperience === "buyer" && view.screen === "project" && (
           <ProjectWorkspace
             projectId={view.projectId}
             onBack={() => setView({ screen: "home" })}
           />
+        )}
+
+        {/* ── Placeholder: experiențe neimplementate ── */}
+        {resolvedExperience !== "buyer" && view.screen === "home" && (
+          <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
+            <div className="text-center max-w-md px-4">
+              <span className="text-4xl mb-4 block">🚧</span>
+              <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+                {resolvedExperience === "decision_maker" ? "Decision Maker" :
+                 resolvedExperience === "builder" ? "Builder" :
+                 resolvedExperience === "admin" ? "Admin" : resolvedExperience}
+              </h2>
+              <p className="text-neutral-500">
+                Această experiență nu este încă disponibilă. Revino curând.
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Global feedback widget */}
