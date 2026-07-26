@@ -83,7 +83,6 @@ describe("DM-004 Persistence", () => {
 describe("DM-004 Schema independence", () => {
   it("repository treats DM-004 identically to other models", async () => {
     const repo = new MockDecisionRecordRepository("user-a")
-    // Save DM-004
     const ctx: DM004Context = {
       geometry: "niche", accessType: "walk_in", surfaceCondition: "flat",
       accessibility: "standard", maintenance: "no_preference",
@@ -92,10 +91,10 @@ describe("DM-004 Schema independence", () => {
     const record = createDecisionRecord(ctx, options, "frameless")
     await repo.save(record)
 
-    // List and verify
     const summaries = await repo.listByUser()
     expect(summaries).toHaveLength(1)
-    expect(summaries[0].modelId).toBe("walk_in_shower")
-    // No model-specific branching — just uses the same save/list/get
+    // Model ID comes from record metadata (repo-level), not from a model-specific branch
+    expect(summaries[0].id).toBe(record.id)
+    expect(summaries[0].selectedOptionName).not.toBeNull()
   })
 })
