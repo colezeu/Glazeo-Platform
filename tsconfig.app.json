@@ -19,7 +19,7 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"], "experience-gateway": ["./src/experience/LegacyBuyerExperienceGateway.entry.ts"] }
+    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"], "experience-gateway": ["./src/experience/LegacyBuyerExperienceGateway.entry.ts"], "decision-record-repo": ["./src/persistence/SupabaseDecisionRecordRepository.entry.ts"] }
   },
   "include": ["src"]
 }

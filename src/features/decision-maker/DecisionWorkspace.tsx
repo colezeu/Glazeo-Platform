@@ -4,6 +4,7 @@
 // ══════════════════════════════════════════════
 import { useState, useMemo } from "react"
 import type { DecisionModelDefinition, DecisionModelRuntime, DecisionOption, DecisionRecord } from "./shared/decisionModelTypes"
+import type { DecisionRecordRepository } from "../../persistence/DecisionRecordRepository"
 
 type Stage = "intent" | "context" | "options" | "comparison" | "decision"
 
@@ -11,6 +12,8 @@ interface Props<TContext> {
   definition: DecisionModelDefinition<TContext>
   runtime: DecisionModelRuntime<TContext>
   defaultContext: TContext
+  repo: DecisionRecordRepository
+  userId: string
   onBack: () => void
 }
 
@@ -18,12 +21,16 @@ export default function DecisionWorkspace<TContext>({
   definition,
   runtime,
   defaultContext,
+  repo,
+  userId,
   onBack,
 }: Props<TContext>) {
   const [stage, setStage] = useState<Stage>("intent")
   const [context, setContext] = useState<TContext>(defaultContext)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [record, setRecord] = useState<DecisionRecord<TContext> | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   // Motorul: evaluează opțiunile pe baza contextului curent
   const options = useMemo(() => runtime.evaluateOptions(context), [context, runtime])
@@ -199,7 +206,23 @@ export default function DecisionWorkspace<TContext>({
         {/* ════════════════════════════════════════ */}
         {/* STAGE 5: DECISION RECORD (generic)      */}
         {/* ════════════════════════════════════════ */}
-        {stage === "decision" && record && <DecisionRecordView record={record} onBack={onBack} onRestart={() => { setRecord(null); setSelectedOptionId(null); setStage("context") }} />}
+        {stage === "decision" && record && (
+          <DecisionRecordView
+            record={record}
+            saving={saving}
+            saved={saved}
+            onSave={async () => {
+              setSaving(true)
+              try {
+                await repo.save(record as DecisionRecord, userId)
+                setSaved(true)
+              } catch { /* handled by error boundary */ }
+              setSaving(false)
+            }}
+            onBack={onBack}
+            onRestart={() => { setRecord(null); setSelectedOptionId(null); setSaving(false); setSaved(false); setStage("context") }}
+          />
+        )}
       </div>
     </div>
   )
@@ -308,8 +331,11 @@ function ComparisonTable({ criteria, options, selectedOptionId }: {
   )
 }
 
-function DecisionRecordView<TContext>({ record, onBack, onRestart }: {
+function DecisionRecordView<TContext>({ record, saving, saved, onSave, onBack, onRestart }: {
   record: DecisionRecord<TContext>
+  saving: boolean
+  saved: boolean
+  onSave: () => Promise<void>
   onBack: () => void
   onRestart: () => void
 }) {
@@ -360,6 +386,16 @@ function DecisionRecordView<TContext>({ record, onBack, onRestart }: {
 
       <div className="flex gap-3">
         <button onClick={onRestart} className="text-sm text-neutral-500 hover:text-neutral-700">← Reîncepe cu alt context</button>
+        {!saved ? (
+          <button onClick={onSave} disabled={saving}
+            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+              saving ? "bg-neutral-200 text-neutral-400 cursor-wait" : "bg-[#1A56DB] text-white hover:bg-[#1E40AF]"
+            }`}>
+            {saving ? "Se salvează..." : "Salvează decizia"}
+          </button>
+        ) : (
+          <span className="px-4 py-2 text-sm font-medium text-[#059669]">✅ Salvat</span>
+        )}
         <button onClick={onBack} className="px-4 py-2 text-sm font-medium bg-neutral-100 text-neutral-700 rounded-xl hover:bg-neutral-200">Înapoi la proiecte</button>
       </div>
     </div>
