@@ -1,32 +1,76 @@
-# React + TypeScript + Vite
+# GLAZEO Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Platformă Role-Based Experience pentru industria sticlei arhitecturale. Construită de [Glass Associates](https://glass.associates).
 
-Currently, two official plugins are available:
+## Arhitectură
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+main.tsx → App Shell
+  ├─ Experience Resolution (Phase 1)
+  │   └─ resolveExperience() — funcție pură, testabilă
+  ├─ AuthGateway (Supabase — Production / Mock — E2E)
+  └─ Role Routing
+      ├─ decision_maker → DecisionMakerHome → DecisionWorkspace
+      ├─ buyer          → BuyerHome → ProjectWorkspace
+      ├─ builder        → (în construcție)
+      └─ admin          → (în construcție)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Decision Models (DM)
+
+| Model | Domeniu | Fișier |
+|---|---|---|
+| DM-001 | Compartimentare sală ședințe | `dm001/` |
+| DM-002 | Balustradă sticlă | `dm002/` |
+| DM-003 | Fațadă — strategie vitrare | `dm003/` |
+| DM-004 | Cabină duș walk-in | `dm004/` |
+
+Fiecare DM conține: `Data` (tipuri + contexte), `Definition` (întrebări + opțiuni + criterii), `Engine` (logică pură de evaluare).
+
+Arhitectura completă: `docs/architecture-review-v1.md`
+
+## Stack
+
+- **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
+- **Backend:** Supabase (Auth, RLS, PostgreSQL)
+- **Testing:** Vitest (unit) + Playwright (E2E)
+- **CI/CD:** GitHub Actions + Vercel
+- **Persistență:** Decision Records → JSONB, RLS-enforced per user
+
+## Experiențe
+
+### Decision Maker (arhitect/designer)
+
+Homepage cu Decision Tools orientate pe context ("Ce proiectezi?"), nu pe listă de produse. Decision Workspace cu engine de recomandări per model. Decision Memory — istoricul deciziilor persistat.
+
+### Buyer (client)
+
+Workspace cu Projects, Quotes, Orders. Configuratoare per produs. Role-based pricing (public/verified/contracted).
+
+## Development
+
+```bash
+npm install
+npm run dev          # Dev server
+npm run typecheck    # TypeScript
+npm run test:unit    # Vitest (70 de teste)
+npm run test:e2e     # Playwright Buyer E2E
+npm run test:e2e:dm  # Playwright Decision Maker E2E
+npm run build        # Production build
+```
+
+## Environment
+
+Copiază `.env.example` → `.env`:
+
+```
+VITE_SUPABASE_URL=https://vxtpkbckdvrmgudvkqwx.supabase.co
+VITE_SUPABASE_ANON_KEY=<din Supabase dashboard>
+```
+
+## Docs
+
+- `docs/architecture-review-v1.md` — arhitectură completă, inventar modele
+- `docs/adr/001-experience-resolution.md` — ADR: Experience Resolution
+- `docs/dm-00X-contract.md` — contract per Decision Model
+- `docs/supabase/001-decision-records.sql` — schema + RLS
