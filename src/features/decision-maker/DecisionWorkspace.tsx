@@ -13,7 +13,6 @@ interface Props<TContext> {
   runtime: DecisionModelRuntime<TContext>
   defaultContext: TContext
   repo: DecisionRecordRepository
-  userId: string
   onBack: () => void
 }
 
@@ -22,7 +21,6 @@ export default function DecisionWorkspace<TContext>({
   runtime,
   defaultContext,
   repo,
-  userId,
   onBack,
 }: Props<TContext>) {
   const [stage, setStage] = useState<Stage>("intent")
@@ -214,7 +212,7 @@ export default function DecisionWorkspace<TContext>({
             onSave={async () => {
               setSaving(true)
               try {
-                await repo.save(record as DecisionRecord, userId)
+                await repo.save(record as DecisionRecord)
                 setSaved(true)
               } catch { /* handled by error boundary */ }
               setSaving(false)

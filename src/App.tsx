@@ -1,6 +1,5 @@
 // ══════════════════════════════════════════════
-// GLAZEO Platform — App Shell (Gate 4 + Experience Resolution + Persistence)
-// Landing → Auth → Experience Resolution → Workspace → Project
+// GLAZEO Platform — App Shell
 // ══════════════════════════════════════════════
 import { useState, useEffect, useCallback, useRef } from "react"
 import type { AuthGateway } from "./auth/types"
@@ -23,22 +22,16 @@ import type { DecisionRecordRepository } from "./persistence/DecisionRecordRepos
 
 type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string } | { screen: "dm-decision"; modelId: string } | { screen: "dm-record"; recordId: string }
 
-type InitPhase =
-  | { phase: "checking_auth" }
-  | { phase: "resolving_experience" }
-  | { phase: "experience_error"; message: string }
-  | { phase: "ready" }
+type InitPhase = { phase: "checking_auth" } | { phase: "resolving_experience" } | { phase: "experience_error"; message: string } | { phase: "ready" }
 
 export default function App({ auth, experience, repo }: { auth: AuthGateway; experience: ExperienceGateway; repo: DecisionRecordRepository }) {
   const [view, setView] = useState<View>({ screen: "landing" })
   const [level, setLevel] = useState<BuyerLevel>("verified")
   const [initPhase, setInitPhase] = useState<InitPhase>({ phase: "checking_auth" })
   const [experienceState, setExperienceState] = useState<ExperienceResolution>({ status: "unauthenticated" })
-  const [userId, setUserId] = useState<string>("")
   const requestIdRef = useRef(0)
 
   const resolveAfterAuth = useCallback(async (id: string) => {
-    setUserId(id)
     const requestId = ++requestIdRef.current
     setInitPhase({ phase: "resolving_experience" })
     try {
@@ -70,7 +63,6 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
     setExperienceState({ status: "unauthenticated" })
     setView({ screen: "landing" })
     setInitPhase({ phase: "ready" })
-    setUserId("")
   }, [auth])
 
   const handleAuthenticated = useCallback(async () => {
@@ -85,7 +77,7 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
     return <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center"><div className="animate-spin h-8 w-8 border-2 border-[#1A56DB] border-t-transparent rounded-full mx-auto mb-3" /><p className="text-neutral-500 text-sm">Se încarcă experiența...</p></div></div>
   }
   if (initPhase.phase === "experience_error") {
-    return <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center max-w-md px-4"><span className="text-4xl mb-4 block">⚠️</span><h2 className="text-xl font-semibold text-neutral-900 mb-2">Eroare la încărcarea experienței</h2><p className="text-neutral-500 text-sm mb-4">{initPhase.message}</p><button onClick={() => { const requestId = ++requestIdRef.current; setInitPhase({ phase: "checking_auth" }); auth.getCurrentUser().then(async (user) => { if (requestId !== requestIdRef.current) return; if (user) { setUserId(user.id); resolveAfterAuth(user.id) } else { setInitPhase({ phase: "ready" }) } }) }} className="px-4 py-2 text-sm font-medium bg-[#1A56DB] text-white rounded-lg hover:bg-[#1E40AF] transition-colors">Reîncearcă</button></div></div>
+    return <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center max-w-md px-4"><span className="text-4xl mb-4 block">⚠️</span><h2 className="text-xl font-semibold text-neutral-900 mb-2">Eroare la încărcarea experienței</h2><p className="text-neutral-500 text-sm mb-4">{initPhase.message}</p><button onClick={() => { const requestId = ++requestIdRef.current; setInitPhase({ phase: "checking_auth" }); auth.getCurrentUser().then(async (user) => { if (requestId !== requestIdRef.current) return; if (user) { resolveAfterAuth(user.id) } else { setInitPhase({ phase: "ready" }) } }) }} className="px-4 py-2 text-sm font-medium bg-[#1A56DB] text-white rounded-lg hover:bg-[#1E40AF] transition-colors">Reîncearcă</button></div></div>
   }
 
   if (experienceState.status === "unauthenticated") {
@@ -96,7 +88,6 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
       </GlazeoErrorBoundary>
     )
   }
-
   if (experienceState.status === "needs_onboarding") {
     return (
       <GlazeoErrorBoundary>
@@ -106,11 +97,10 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
       </GlazeoErrorBoundary>
     )
   }
-
   if (experienceState.status === "needs_selection") {
     return (
       <GlazeoErrorBoundary>
-        <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center max-w-md px-4"><span className="text-4xl mb-4 block">👤</span><h2 className="text-xl font-semibold text-neutral-900 mb-2">Alege experiența</h2><p className="text-neutral-500 mb-4">Ai mai multe experiențe disponibile. Selectează cu care vrei să intri.</p><div className="flex flex-col gap-2">{experienceState.available.map((exp) => (<div key={exp} className="px-4 py-2 bg-white rounded-lg border border-neutral-200 text-neutral-500 text-sm">{exp === "decision_maker" ? "🏗️ Decision Maker" : exp === "buyer" ? "🛒 Buyer" : exp === "builder" ? "🔨 Builder (în curând)" : exp === "admin" ? "⚙️ Admin (în curând)" : exp}</div>))}</div></div></div>
+        <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center max-w-md px-4"><span className="text-4xl mb-4 block">👤</span><h2 className="text-xl font-semibold text-neutral-900 mb-2">Alege experiența</h2><p className="text-neutral-500 mb-4">Ai mai multe experiențe disponibile.</p><div className="flex flex-col gap-2">{experienceState.available.map((exp) => (<div key={exp} className="px-4 py-2 bg-white rounded-lg border border-neutral-200 text-neutral-500 text-sm">{exp === "decision_maker" ? "🏗️ Decision Maker" : exp === "buyer" ? "🛒 Buyer" : exp === "builder" ? "🔨 Builder" : exp === "admin" ? "⚙️ Admin" : exp}</div>))}</div></div></div>
         <button onClick={handleLogout} className="fixed top-4 right-4 px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-700 bg-white rounded-lg border border-neutral-200">Sign out</button>
         {view.screen !== "landing" && <FeedbackWidget />}
       </GlazeoErrorBoundary>
@@ -118,7 +108,6 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
   }
 
   const resolvedExperience = experienceState.experience
-
   return (
     <GlazeoErrorBoundary>
       <div>
@@ -134,16 +123,16 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
         {resolvedExperience === "buyer" && view.screen === "project" && <ProjectWorkspace projectId={view.projectId} onBack={() => setView({ screen: "home" })} />}
         {resolvedExperience === "decision_maker" && view.screen === "home" && <DecisionMakerHome onNavigateDecision={(modelId) => setView({ screen: "dm-decision", modelId })} />}
         {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && view.modelId === "meeting_room_partition" && (
-          <DecisionWorkspace definition={dm001Definition} runtime={dm001Runtime} defaultContext={{ ceilingType: "unknown", doorTraffic: "unknown", acousticNeed: "visual_only", noiseNearby: null } as DM001Context} repo={repo} userId={userId} onBack={() => setView({ screen: "home" })} />
+          <DecisionWorkspace definition={dm001Definition} runtime={dm001Runtime} defaultContext={{ ceilingType: "unknown", doorTraffic: "unknown", acousticNeed: "visual_only", noiseNearby: null } as DM001Context} repo={repo} onBack={() => setView({ screen: "home" })} />
         )}
         {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && view.modelId === "glass_balustrade" && (
-          <DecisionWorkspace definition={dm002Definition} runtime={dm002Runtime} defaultContext={dm002DefaultContext} repo={repo} userId={userId} onBack={() => setView({ screen: "home" })} />
+          <DecisionWorkspace definition={dm002Definition} runtime={dm002Runtime} defaultContext={dm002DefaultContext} repo={repo} onBack={() => setView({ screen: "home" })} />
         )}
         {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && view.modelId === "facade_glazing_strategy" && (
-          <DecisionWorkspace definition={dm003Definition} runtime={dm003Runtime} defaultContext={dm003DefaultContext} repo={repo} userId={userId} onBack={() => setView({ screen: "home" })} />
+          <DecisionWorkspace definition={dm003Definition} runtime={dm003Runtime} defaultContext={dm003DefaultContext} repo={repo} onBack={() => setView({ screen: "home" })} />
         )}
         {(resolvedExperience === "builder" || resolvedExperience === "admin") && view.screen === "home" && (
-          <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center max-w-md px-4"><span className="text-4xl mb-4 block">🚧</span><h2 className="text-xl font-semibold text-neutral-900 mb-2">{resolvedExperience === "builder" ? "Builder" : "Admin"}</h2><p className="text-neutral-500">Această experiență nu este încă disponibilă. Revino curând.</p></div></div>
+          <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center"><div className="text-center max-w-md px-4"><span className="text-4xl mb-4 block">🚧</span><h2 className="text-xl font-semibold text-neutral-900 mb-2">{resolvedExperience === "builder" ? "Builder" : "Admin"}</h2><p className="text-neutral-500">Această experiență nu este încă disponibilă.</p></div></div>
         )}
         {view.screen !== "landing" && <FeedbackWidget />}
         <AnalyticsDebug />

@@ -3,4 +3,4 @@
 // ══════════════════════════════════════════════
 import { MockDecisionRecordRepository } from "./MockDecisionRecordRepository"
 
-export const decisionRecordRepo = new MockDecisionRecordRepository()
+export const decisionRecordRepo = new MockDecisionRecordRepository("e2e-user")

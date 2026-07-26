@@ -7,15 +7,20 @@ import type { DecisionRecordRepository, DecisionRecordSummary } from "./Decision
 
 export class MockDecisionRecordRepository implements DecisionRecordRepository {
   private records: Map<string, { record: DecisionRecord; userId: string }> = new Map()
+  private userId: string
 
-  async save(record: DecisionRecord, userId: string): Promise<void> {
-    this.records.set(record.id, { record: structuredClone(record), userId })
+  constructor(userId: string) {
+    this.userId = userId
   }
 
-  async listByUser(userId: string): Promise<DecisionRecordSummary[]> {
+  async save(record: DecisionRecord): Promise<void> {
+    this.records.set(record.id, { record: structuredClone(record), userId: this.userId })
+  }
+
+  async listByUser(): Promise<DecisionRecordSummary[]> {
     const results: DecisionRecordSummary[] = []
     for (const [id, entry] of this.records) {
-      if (entry.userId === userId) {
+      if (entry.userId === this.userId) {
         results.push({
           id,
           modelId: (entry.record as any).intention?.type ?? "unknown",
@@ -28,9 +33,9 @@ export class MockDecisionRecordRepository implements DecisionRecordRepository {
     return results.sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime())
   }
 
-  async getById(id: string, userId: string): Promise<DecisionRecord | null> {
+  async getById(id: string): Promise<DecisionRecord | null> {
     const entry = this.records.get(id)
-    if (!entry || entry.userId !== userId) return null
+    if (!entry || entry.userId !== this.userId) return null
     return structuredClone(entry.record) as DecisionRecord
   }
 }

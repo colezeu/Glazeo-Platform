@@ -13,12 +13,12 @@ export interface DecisionRecordSummary {
 }
 
 export interface DecisionRecordRepository {
-  /** Salvează un Decision Record finalizat. */
-  save(record: DecisionRecord, userId: string): Promise<void>
+  /** Salvează un Decision Record. Ownership derivat din sesiunea autentificată (nu din caller). */
+  save(record: DecisionRecord): Promise<void>
 
-  /** Lista deciziilor utilizatorului curent. */
-  listByUser(userId: string): Promise<DecisionRecordSummary[]>
+  /** Lista deciziilor utilizatorului autentificat. */
+  listByUser(): Promise<DecisionRecordSummary[]>
 
-  /** Încarcă un record complet după ID. */
-  getById(id: string, userId: string): Promise<DecisionRecord | null>
+  /** Încarcă un record complet după ID (doar dacă aparține utilizatorului curent). */
+  getById(id: string): Promise<DecisionRecord | null>
 }

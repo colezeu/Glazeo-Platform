@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════
 // GLAZEO — Supabase Decision Record Repository
+// Ownership: derivat din auth.uid(), nu din caller.
 // ══════════════════════════════════════════════
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { DecisionRecord } from "../features/decision-maker/shared/decisionModelTypes"
@@ -12,12 +13,12 @@ export class SupabaseDecisionRecordRepository implements DecisionRecordRepositor
     this.supabase = supabase
   }
 
-  async save(record: DecisionRecord, userId: string): Promise<void> {
+  async save(record: DecisionRecord): Promise<void> {
     const { error } = await this.supabase
       .from("decision_records")
       .insert({
         id: record.id,
-        user_id: userId,
+        user_id: this.supabase.auth.getUser().then(({ data }) => data.user?.id),
         model_id: (record as any).intention?.type ?? "unknown",
         decided_at: record.decidedAt,
         snapshot: record,
@@ -26,11 +27,10 @@ export class SupabaseDecisionRecordRepository implements DecisionRecordRepositor
     if (error) throw new Error(`Failed to save decision record: ${error.message}`)
   }
 
-  async listByUser(userId: string): Promise<DecisionRecordSummary[]> {
+  async listByUser(): Promise<DecisionRecordSummary[]> {
     const { data, error } = await this.supabase
       .from("decision_records")
       .select("id, model_id, decided_at, snapshot")
-      .eq("user_id", userId)
       .order("decided_at", { ascending: false })
 
     if (error) throw new Error(`Failed to list decision records: ${error.message}`)
@@ -45,12 +45,11 @@ export class SupabaseDecisionRecordRepository implements DecisionRecordRepositor
     }))
   }
 
-  async getById(id: string, userId: string): Promise<DecisionRecord | null> {
+  async getById(id: string): Promise<DecisionRecord | null> {
     const { data, error } = await this.supabase
       .from("decision_records")
       .select("snapshot")
       .eq("id", id)
-      .eq("user_id", userId)
       .single()
 
     if (error) {
