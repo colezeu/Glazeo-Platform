@@ -14,11 +14,17 @@ export class SupabaseDecisionRecordRepository implements DecisionRecordRepositor
   }
 
   async save(record: DecisionRecord): Promise<void> {
+    const { data: authData } = await this.supabase.auth.getUser()
+    const userId = authData.user?.id
+    if (!userId) {
+      throw new Error("Cannot save decision record: no authenticated user")
+    }
+
     const { error } = await this.supabase
       .from("decision_records")
       .insert({
         id: record.id,
-        user_id: this.supabase.auth.getUser().then(({ data }) => data.user?.id),
+        user_id: userId,
         model_id: (record as any).intention?.type ?? "unknown",
         decided_at: record.decidedAt,
         snapshot: record,

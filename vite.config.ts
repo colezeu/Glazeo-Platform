@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
             ? "./src/experience/MockDecisionMakerExperienceGateway.entry.ts"
             : mode === "e2e"
               ? "./src/experience/MockExperienceGateway.entry.ts"
-              : "./src/experience/LegacyBuyerExperienceGateway.entry.ts",
+              : "./src/experience/SupabaseExperienceGateway.entry.ts",
           import.meta.url,
         ),
       ),
