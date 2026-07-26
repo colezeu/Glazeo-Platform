@@ -18,7 +18,7 @@ describe("DM-001 Engine — frameless recommended", () => {
   it("recommends frameless when ceiling is structural and acoustic is visual_only", () => {
     const options = evaluateOptions(ctx)
     const frameless = options.find((o) => o.id === "frameless")!
-    expect(frameless.recommended).toBe(true)
+    expect(frameless.status).toBe("recommended")
     expect(frameless.reason).toContain("Recomandat")
   })
 
@@ -26,7 +26,7 @@ describe("DM-001 Engine — frameless recommended", () => {
     const ctx2: DM001Context = { ...ctx, acousticNeed: "conversational" }
     const options = evaluateOptions(ctx2)
     const frameless = options.find((o) => o.id === "frameless")!
-    expect(frameless.recommended).toBe(true)
+    expect(frameless.status).toBe("recommended")
     expect(frameless.reason).toContain("observații")
     expect(frameless.reason).toContain("Acustica")
   })
@@ -35,7 +35,7 @@ describe("DM-001 Engine — frameless recommended", () => {
     const ctx2: DM001Context = { ...ctx, ceilingType: "unknown" }
     const options = evaluateOptions(ctx2)
     const frameless = options.find((o) => o.id === "frameless")!
-    expect(frameless.recommended).toBe(true)
+    expect(frameless.status).toBe("recommended")
     expect(frameless.reason).toContain("necunoscut")
   })
 })
@@ -52,7 +52,7 @@ describe("DM-001 Engine — frameless rejected", () => {
     }
     const options = evaluateOptions(ctx)
     const frameless = options.find((o) => o.id === "frameless")!
-    expect(frameless.recommended).toBe(false)
+    expect(frameless.status).toBe("not_recommended")
     expect(frameless.reason).toContain("confidențială")
   })
 
@@ -65,7 +65,7 @@ describe("DM-001 Engine — frameless rejected", () => {
     }
     const options = evaluateOptions(ctx)
     const frameless = options.find((o) => o.id === "frameless")!
-    expect(frameless.recommended).toBe(false)
+    expect(frameless.status).toBe("not_recommended")
     expect(frameless.reason).toContain("suspendat")
   })
 })
@@ -82,7 +82,7 @@ describe("DM-001 Engine — spider", () => {
     }
     const options = evaluateOptions(ctx)
     const spider = options.find((o) => o.id === "spider")!
-    expect(spider.recommended).toBe(false)
+    expect(spider.status).toBe("not_recommended")
     expect(spider.reason).toContain("trafic intens")
   })
 
@@ -95,7 +95,7 @@ describe("DM-001 Engine — spider", () => {
     }
     const options = evaluateOptions(ctx)
     const spider = options.find((o) => o.id === "spider")!
-    expect(spider.recommended).toBe(false)
+    expect(spider.status).toBe("not_recommended")
     expect(spider.reason).toContain("Zgomotul")
   })
 
@@ -108,7 +108,7 @@ describe("DM-001 Engine — spider", () => {
     }
     const options = evaluateOptions(ctx)
     const spider = options.find((o) => o.id === "spider")!
-    expect(spider.recommended).toBe(true)
+    expect(spider.status).toBe("recommended")
     expect(spider.reason).toContain("industrial")
   })
 })
@@ -125,7 +125,7 @@ describe("DM-001 Engine — aluminum", () => {
     }
     const options = evaluateOptions(ctx)
     const aluminum = options.find((o) => o.id === "aluminum")!
-    expect(aluminum.recommended).toBe(true)
+    expect(aluminum.status).toBe("recommended")
     expect(aluminum.reason).toContain("confidențialitate")
   })
 
@@ -138,7 +138,7 @@ describe("DM-001 Engine — aluminum", () => {
     }
     const options = evaluateOptions(ctx)
     const aluminum = options.find((o) => o.id === "aluminum")!
-    expect(aluminum.recommended).toBe(true)
+    expect(aluminum.status).toBe("recommended")
     expect(aluminum.reason).toContain("iertător")
   })
 })
