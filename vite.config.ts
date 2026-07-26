@@ -25,6 +25,14 @@ export default defineConfig(({ mode }) => ({
           import.meta.url,
         ),
       ),
+      "decision-record-repo": fileURLToPath(
+        new URL(
+          mode === "e2e" || mode === "e2e-dm"
+            ? "./src/persistence/MockDecisionRecordRepository.entry.ts"
+            : "./src/persistence/SupabaseDecisionRecordRepository.entry.ts",
+          import.meta.url,
+        ),
+      ),
     },
   },
   test: {
