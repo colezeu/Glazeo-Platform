@@ -28,7 +28,7 @@ export default function DecisionWorkspace<TContext>({
   // Motorul: evaluează opțiunile pe baza contextului curent
   const options = useMemo(() => runtime.evaluateOptions(context), [context, runtime])
 
-  const recommendedOptions = options.filter((o) => o.recommended)
+  const recommendedOptions = options.filter((o) => o.status === "recommended")
 
   const handleContextChange = (field: keyof TContext & string, value: TContext[typeof field]) => {
     if (record !== null) {
@@ -208,18 +208,24 @@ export default function DecisionWorkspace<TContext>({
 // ── Sub-components (shared across all DMs) ──────────
 
 function OptionCard({ option, onSelect }: { option: DecisionOption; onSelect: () => void }) {
+  const isRecommended = option.status === "recommended"
+  const isExcluded = option.status === "excluded"
   return (
     <div className={`bg-white rounded-xl border-2 p-5 transition-colors ${
-      option.recommended ? "border-[#059669]/30 hover:border-[#059669]/60" : "border-red-200 opacity-75"
+      isRecommended ? "border-[#059669]/30 hover:border-[#059669]/60" :
+      isExcluded ? "border-red-300 opacity-60" :
+      "border-red-200 opacity-75"
     }`}>
       <div className="flex items-start justify-between mb-2">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-neutral-900">{option.name}</h3>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-              option.recommended ? "bg-[#ECFDF5] text-[#059669]" : "bg-[#FEF2F2] text-[#991B1B]"
+              isRecommended ? "bg-[#ECFDF5] text-[#059669]" :
+              isExcluded ? "bg-[#FEF2F2] text-[#991B1B]" :
+              "bg-[#FFF7ED] text-[#9A3412]"
             }`}>
-              {option.recommended ? "Recomandat" : "Nerecomandat"}
+              {isRecommended ? "Recomandat" : isExcluded ? "Exclus" : "Nerecomandat"}
             </span>
           </div>
           <p className="text-xs text-neutral-500 mt-1">{option.reason}</p>
@@ -248,7 +254,7 @@ function OptionCard({ option, onSelect }: { option: DecisionOption; onSelect: ()
           </ul>
         </div>
       )}
-      {option.recommended && (
+      {(isRecommended || option.status === "not_recommended") && (
         <button onClick={onSelect} className="text-xs font-medium text-[#1A56DB] hover:text-[#1E40AF]">
           Selectează și compară →
         </button>

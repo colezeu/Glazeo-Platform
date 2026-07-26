@@ -13,6 +13,7 @@ import DecisionMakerHome from "./features/decision-maker/DecisionMakerHome"
 import DecisionWorkspace from "./features/decision-maker/DecisionWorkspace"
 import { dm001Definition, dm001Runtime } from "./features/decision-maker/dm001/dm001Definition"
 import { dm002Definition, dm002Runtime, dm002DefaultContext } from "./features/decision-maker/dm002/dm002Definition"
+import { dm003Definition, dm003Runtime, dm003DefaultContext } from "./features/decision-maker/dm003/dm003Definition"
 import type { DM001Context } from "./features/decision-maker/dm001/dm001Data"
 import ProjectWorkspace from "./features/buyer/ProjectWorkspace"
 import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback"
@@ -286,6 +287,14 @@ export default function App({ auth, experience }: { auth: AuthGateway; experienc
             definition={dm002Definition}
             runtime={dm002Runtime}
             defaultContext={dm002DefaultContext}
+            onBack={() => setView({ screen: "home" })}
+          />
+        )}
+        {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && view.modelId === "facade_glazing_strategy" && (
+          <DecisionWorkspace
+            definition={dm003Definition}
+            runtime={dm003Runtime}
+            defaultContext={dm003DefaultContext}
             onBack={() => setView({ screen: "home" })}
           />
         )}

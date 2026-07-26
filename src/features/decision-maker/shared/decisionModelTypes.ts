@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════
-// GLAZEO — Decision Model Shared Types
-// Parametrizează DecisionWorkspace fără a cunoaște DM-001 sau DM-002.
+// GLAZEO — Decision Model Shared Types (v2)
+// DM-003: introduces EvaluationStatus with constraint/preference separation.
 // ══════════════════════════════════════════════
 
 // ── Context Questions ──────────────────────────────
@@ -31,10 +31,16 @@ export interface BaseOption {
   tradeoffs: string[]
 }
 
-export interface DecisionOption extends BaseOption {
-  recommended: boolean
+/** Rezultatul evaluării engine-ului pentru o opțiune. */
+export type EvaluationStatus = "recommended" | "not_recommended" | "excluded"
+
+export interface EvaluationResult {
+  status: EvaluationStatus
+  /** Motivul determinant principal, evaluat în ordine stabilă (constraint → preference → recommend). */
   reason: string
 }
+
+export interface DecisionOption extends BaseOption, EvaluationResult {}
 
 // ── Comparison Criteria ────────────────────────────
 

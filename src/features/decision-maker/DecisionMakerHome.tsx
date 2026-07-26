@@ -17,10 +17,10 @@ const INTENTS = [
     available: true, // DM-002
   },
   {
-    key: "facade",
-    label: "Fațadă",
-    description: "Fațadă ventilată, curtain wall sau stick system.",
-    available: false,
+    key: "facade_glazing_strategy",
+    label: "Fațadă — strategie de vitrare",
+    description: "Alege strategia de vitraj pentru fațadă: transparență, control solar, performanță termică.",
+    available: true, // DM-003
   },
 ]
 
