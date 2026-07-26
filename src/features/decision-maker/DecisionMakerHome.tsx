@@ -17,6 +17,12 @@ const INTENTS = [
     available: true, // DM-002
   },
   {
+    key: "walk_in_shower",
+    label: "Cabină de duș walk-in",
+    description: "Panou de sticlă pentru duș — alege între estetică, robustețe și controlul apei.",
+    available: true, // DM-004
+  },
+  {
     key: "facade_glazing_strategy",
     label: "Fațadă — strategie de vitrare",
     description: "Alege strategia de vitraj pentru fațadă: transparență, control solar, performanță termică.",
