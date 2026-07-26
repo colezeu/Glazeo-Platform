@@ -11,12 +11,15 @@ import AuthPage from "./features/buyer/AuthPage"
 import BuyerHome from "./features/buyer/BuyerHome"
 import DecisionMakerHome from "./features/decision-maker/DecisionMakerHome"
 import DecisionWorkspace from "./features/decision-maker/DecisionWorkspace"
+import { dm001Definition, dm001Runtime } from "./features/decision-maker/dm001/dm001Definition"
+import { dm002Definition, dm002Runtime, dm002DefaultContext } from "./features/decision-maker/dm002/dm002Definition"
+import type { DM001Context } from "./features/decision-maker/dm001/dm001Data"
 import ProjectWorkspace from "./features/buyer/ProjectWorkspace"
 import { FeedbackWidget, GlazeoErrorBoundary, AnalyticsDebug } from "./app/feedback"
 import { Analytics } from "./app/feedback"
 import type { BuyerLevel } from "./foundation/tokens"
 
-type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string } | { screen: "dm-decision" }
+type View = { screen: "landing" } | { screen: "auth" } | { screen: "home" } | { screen: "project"; projectId: string } | { screen: "dm-decision"; modelId: string }
 
 type InitPhase =
   | { phase: "checking_auth" }
@@ -262,11 +265,29 @@ export default function App({ auth, experience }: { auth: AuthGateway; experienc
         {/* ── Decision Maker Experience ── */}
         {resolvedExperience === "decision_maker" && view.screen === "home" && (
           <DecisionMakerHome
-            onNavigateDecision={() => setView({ screen: "dm-decision" })}
+            onNavigateDecision={(modelId) => setView({ screen: "dm-decision", modelId })}
           />
         )}
-        {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && (
-          <DecisionWorkspace onBack={() => setView({ screen: "home" })} />
+        {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && view.modelId === "meeting_room_partition" && (
+          <DecisionWorkspace
+            definition={dm001Definition}
+            runtime={dm001Runtime}
+            defaultContext={{
+              ceilingType: "unknown",
+              doorTraffic: "unknown",
+              acousticNeed: "visual_only",
+              noiseNearby: null,
+            } as DM001Context}
+            onBack={() => setView({ screen: "home" })}
+          />
+        )}
+        {resolvedExperience === "decision_maker" && view.screen === "dm-decision" && view.modelId === "glass_balustrade" && (
+          <DecisionWorkspace
+            definition={dm002Definition}
+            runtime={dm002Runtime}
+            defaultContext={dm002DefaultContext}
+            onBack={() => setView({ screen: "home" })}
+          />
         )}
 
         {/* ── Placeholder: experiențe neimplementate (builder, admin) ── */}
