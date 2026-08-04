@@ -2,45 +2,13 @@
 // GLAZEO — Landing Page (neautentificat)
 // ══════════════════════════════════════════════
 import { useState } from "react"
-import type { AuthGateway } from "../../auth/types"
 
 export default function LandingPage({
-  auth,
-  onAuthenticated,
+  onGetStarted,
 }: {
-  auth: AuthGateway
-  onAuthenticated: () => void
+  onGetStarted: () => void
 }) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
   const [showDemo, setShowDemo] = useState(false)
-
-  const handleStart = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
-
-    try {
-      const user = await auth.signUp(email, password)
-      const key = `profile_created_${user.id}`
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1")
-        await auth.registerAccount(user.id, user.email ?? email)
-      }
-      onAuthenticated()
-    } catch {
-      // If user exists, try sign in
-      try {
-        await auth.signIn(email, password)
-        onAuthenticated()
-      } catch (loginErr) {
-        setError(loginErr instanceof Error ? loginErr.message : String(loginErr))
-      }
-    }
-    setLoading(false)
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FB]">
@@ -54,31 +22,14 @@ export default function LandingPage({
           Fără zeci de telefoane și emailuri. Configurezi, vezi prețul, primești oferta — totul într-un singur loc.
         </p>
 
-        {/* Signup form */}
-        <div className="max-w-sm mx-auto bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 mb-8">
-          <form onSubmit={handleStart} className="space-y-4">
-            <input
-              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-[#D1D5DB] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/25 focus:border-[#1A56DB]"
-              placeholder="email@companie.ro"
-            />
-            <input
-              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              required minLength={6}
-              className="w-full px-4 py-3 border border-[#D1D5DB] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A56DB]/25 focus:border-[#1A56DB]"
-              placeholder="Parolă (minim 6 caractere)"
-            />
-            {error && (
-              <div className="bg-[#FEF2F2] text-[#991B1B] text-sm p-3 rounded-lg">{error}</div>
-            )}
-            <button
-              type="submit" disabled={loading}
-              className="w-full py-3 text-sm font-semibold bg-[#1A56DB] text-white rounded-xl hover:bg-[#1E40AF] transition-colors disabled:opacity-50"
-            >
-              {loading ? "Se încarcă..." : "Începe gratuit"}
-            </button>
-          </form>
+        {/* CTA */}
+        <div className="max-w-sm mx-auto mb-8">
+          <button
+            onClick={onGetStarted}
+            className="w-full py-3 text-sm font-semibold bg-[#1A56DB] text-white rounded-xl hover:bg-[#1E40AF] transition-colors"
+          >
+            Începe gratuit
+          </button>
           <p className="text-xs text-neutral-400 text-center mt-4">
             Fără card de credit. Fără configurare complicată.
           </p>

@@ -84,7 +84,7 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
   if (experienceState.status === "unauthenticated") {
     return (
       <GlazeoErrorBoundary>
-        {view.screen === "landing" && <LandingPage auth={auth} onAuthenticated={() => { Analytics.signup(); setView({ screen: "auth" }) }} />}
+        {view.screen === "landing" && <LandingPage onGetStarted={() => { Analytics.signup(); setView({ screen: "auth" }) }} />}
         {view.screen === "auth" && <AuthPage auth={auth} onAuthenticated={handleAuthenticated} />}
       </GlazeoErrorBoundary>
     )
