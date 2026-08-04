@@ -81,7 +81,16 @@ export default function AuthPage({ auth, onAuthenticated }: AuthPageProps) {
     setOtpStage("verifying")
 
     try {
-      await auth.verifyOtp(email, otpToken)
+      const user = await auth.verifyOtp(email, otpToken)
+      const key = `profile_created_${user.id}`
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1")
+        try {
+          await auth.registerAccount(user.id, user.email ?? email)
+        } catch (rpcErr) {
+          console.error("Onboarding failed:", rpcErr)
+        }
+      }
       onAuthenticated()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
