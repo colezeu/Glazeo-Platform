@@ -33,7 +33,7 @@ class SupabaseAuthGateway implements AuthGateway {
   async sendOtp(email: string): Promise<void> {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: true },
     })
     if (error) throw error
   }
