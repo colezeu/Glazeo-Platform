@@ -12,6 +12,8 @@ export interface AuthGateway {
   getCurrentUser(): Promise<AuthUser | null>
   signUp(email: string, password: string): Promise<AuthUser>
   signIn(email: string, password: string): Promise<AuthUser>
+  sendOtp(email: string): Promise<void>
+  verifyOtp(email: string, token: string): Promise<AuthUser>
   signOut(): Promise<void>
   registerAccount(userId: string, email: string): Promise<void>
 }

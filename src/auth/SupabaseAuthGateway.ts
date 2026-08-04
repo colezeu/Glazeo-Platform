@@ -30,6 +30,25 @@ class SupabaseAuthGateway implements AuthGateway {
     return toAuthUser(data.user)
   }
 
+  async sendOtp(email: string): Promise<void> {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    })
+    if (error) throw error
+  }
+
+  async verifyOtp(email: string, token: string): Promise<AuthUser> {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    })
+    if (error) throw error
+    if (!data.user) throw new Error("OTP verification succeeded but no user returned")
+    return toAuthUser(data.user)
+  }
+
   async signOut(): Promise<void> {
     await supabase.auth.signOut()
   }

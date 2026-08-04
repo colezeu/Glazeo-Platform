@@ -23,6 +23,14 @@ class MockAuthGateway implements AuthGateway {
     return E2E_USER
   }
 
+  async sendOtp(_email: string): Promise<void> {
+    // no-op — mock doesn't send emails
+  }
+
+  async verifyOtp(_email: string, _token: string): Promise<AuthUser> {
+    return E2E_USER
+  }
+
   async signOut(): Promise<void> {
     // no-op
   }
