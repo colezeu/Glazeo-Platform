@@ -1,6 +1,7 @@
 // ══════════════════════════════════════════════
-// GLAZEO — DM-004 Engine (Cabină de duș walk-in)
-// constraints → preferences → recommendation
+// GLAZEO — DM-004 Engine (Cabină de duș) v2
+// 3 sisteme réale: paravan, batanta, culisant.
+// stabilized eliminat — e parametru al paravanului.
 // ══════════════════════════════════════════════
 import type { DM004Context } from "./dm004Data"
 import type { DecisionOption, DecisionRecord, EvaluationResult } from "../shared/decisionModelTypes"
@@ -15,61 +16,114 @@ export function evaluateOptions(context: DM004Context): DecisionOption[] {
 
 function evaluateOption(optionId: string, ctx: DM004Context): EvaluationResult {
   switch (optionId) {
-    case "frameless": return evaluateFrameless(ctx)
-    case "stabilized": return evaluateStabilized(ctx)
-    case "enclosed": return evaluateEnclosed(ctx)
+    case "paravan":  return evaluateParavan(ctx)
+    case "batanta":  return evaluateBatanta(ctx)
+    case "culisant": return evaluateCulisant(ctx)
     default: return { status: "not_recommended", reason: "Opțiune necunoscută." }
   }
 }
 
-// ── Frameless ───────────────────────────────────────
+// ══════════════════════════════════════════════
+// Paravan Fix — deschis, fără ușă
+// ══════════════════════════════════════════════
 
-function evaluateFrameless(ctx: DM004Context): EvaluationResult {
-  // Constraint: ușă glisantă incompatibilă cu frameless
-  if (ctx.accessType === "sliding_door") {
-    return { status: "excluded", reason: "Frameless nu suportă ușă glisantă — profilul de ghidaj contrazice designul fără profil." }
-  }
-  // Constraint: denivelări severe
-  if (ctx.surfaceCondition === "uneven") {
-    return { status: "excluded", reason: "Suprafețele cu denivelări nu permit ancorarea sigură a panoului frameless. Este necesar profil sau stabilizator." }
-  }
-  // Preference: întreținere
-  if (ctx.maintenance === "minimal") {
-    return { status: "not_recommended", reason: "Frameless necesită curățare frecventă și tratament anti-calcificare. Pentru întreținere minimă, opțiunea cu ușă reduce expunerea la apă." }
-  }
-  // Preference: accesibilitate
-  if (ctx.accessibility === "accessible") {
-    return { status: "not_recommended", reason: "Fără ușă, intrarea/ieșirea poate necesita spațiu de manevră mai mare. Ușa glisantă oferă acces mai facil." }
-  }
-  return { status: "recommended", reason: "Recomandat: estetică maximă, ideal pentru nișe cu suprafețe plane." }
-}
-
-// ── Stabilized ──────────────────────────────────────
-
-function evaluateStabilized(ctx: DM004Context): EvaluationResult {
-  // Constraint: geometrie insulă
+function evaluateParavan(ctx: DM004Context): EvaluationResult {
+  // ── CONSTRAINT: geometrie insulă → stropii ajung peste tot ──
   if (ctx.geometry === "island") {
-    return { status: "excluded", reason: "Bara de stabilizare necesită 2 pereți opuși. Geometria insulă nu oferă acest suport." }
+    return {
+      status: "excluded",
+      reason: "Geometria insulă nu permite paravan fix fără ușă — stropii de apă ajung în toată baia. Este necesară o ușă (batantă sau glisantă).",
+    }
   }
-  // Constraint: ușă glisantă
-  if (ctx.accessType === "sliding_door") {
-    return { status: "excluded", reason: "Bara de stabilizare nu este compatibilă cu ușa glisantă — ghidajele interferează." }
+
+  // ── CONSTRAINT: denivelări severe ──
+  if (ctx.surfaceCondition === "uneven" && ctx.stabilizationBar === "no") {
+    return {
+      status: "excluded",
+      reason: "Suprafețele cu denivelări nu permit ancorarea sigură a paravanului fix fără bară de stabilizare. Activează bara de stabilizare sau alege o ușă.",
+    }
   }
-  // Preference: walk-in cu denivelări
-  if (ctx.surfaceCondition === "uneven" && ctx.accessType === "walk_in") {
-    return { status: "recommended", reason: "Recomandat: bara de stabilizare compensează denivelările și oferă robustețe suplimentară." }
+
+  // ── PREFERENCE: denivelări + bară de stabilizare → OK cu observații ──
+  if (ctx.surfaceCondition === "uneven" && ctx.stabilizationBar === "yes") {
+    return {
+      status: "recommended",
+      reason: "Recomandat cu bară de stabilizare: compensează denivelările și oferă robustețe. Bara va fi vizibilă (profil orizontal între pereți).",
+    }
   }
-  return { status: "recommended", reason: "Recomandat: echilibru bun între estetică și robustețe." }
+
+  // ── PREFERENCE: întreținere minimă fără tratament → risc de calcar ──
+  if (ctx.maintenance === "minimal") {
+    return {
+      status: "recommended",
+      reason: "Recomandat, dar fără ușă sticla e complet expusă la apă. Tratamentul ENDURO-Shield (anti-calcificare) este recomandat pentru întreținere minimă.",
+    }
+  }
+
+  // ── RECOMMEND: default pentru nișă/colț, plan ──
+  return {
+    status: "recommended",
+    reason: "Recomandat: estetică maximă, acces facil, cel mai simplu de întreținut. Ideal pentru nișe și colțuri cu suprafață plană.",
+  }
 }
 
-// ── Enclosed ────────────────────────────────────────
+// ══════════════════════════════════════════════
+// Fix + Ușă Batantă — control apă
+// ══════════════════════════════════════════════
 
-function evaluateEnclosed(_ctx: DM004Context): EvaluationResult {
-  // Cea mai flexibilă opțiune — aproape întotdeauna recomandată
-  return { status: "recommended", reason: "Recomandat: control maxim al apei, compatibil cu toate geometriile și cerințele de accesibilitate." }
+function evaluateBatanta(ctx: DM004Context): EvaluationResult {
+  // ── CONSTRAINT: geometrie insulă → ușa are nevoie de perete ──
+  if (ctx.geometry === "island") {
+    return {
+      status: "excluded",
+      reason: "Ușa batantă necesită perete pentru balamale. Geometria insulă nu oferă acest suport. Alege ușă glisantă.",
+    }
+  }
+
+  // ── PREFERENCE: accesibilitate → necesită manevră ──
+  if (ctx.accessibility === "accessible") {
+    return {
+      status: "not_recommended",
+      reason: "Ușa batantă necesită spațiu de manevră (~70cm în față) și forță pentru deschidere. Paravanul fix (walk-in) sau ușa glisantă sunt mai accesibile.",
+    }
+  }
+
+  // ── RECOMMEND: opțiunea standard pentru controlul apei ──
+  return {
+    status: "recommended",
+    reason: "Recomandat: control maxim al stropirii, deschidere generoasă, mai ușor de curățat decât glisanta (fără ghidaj inferior).",
+  }
 }
 
-// ── Decision Record Factory ─────────────────────────
+// ══════════════════════════════════════════════
+// Fix + Ușă Glisantă — economie de spațiu
+// ══════════════════════════════════════════════
+
+function evaluateCulisant(ctx: DM004Context): EvaluationResult {
+  // ── PREFERENCE: întreținere minimă → ghidajele necesită curățare ──
+  if (ctx.maintenance === "minimal") {
+    return {
+      status: "not_recommended",
+      reason: "Ușa glisantă are ghidaj inferior care acumulează calcar și necesită curățare frecventă. Pentru întreținere minimă, paravanul fix e mai potrivit.",
+    }
+  }
+
+  // ── RECOMMEND: insulă, spațiu îngust, accesibilitate ──
+  const reasons: string[] = []
+  if (ctx.geometry === "island") reasons.push("Singura opțiune viabilă pentru geometrie insulă.")
+  if (ctx.accessibility === "accessible") reasons.push("Nu necesită spațiu de manevră — bun pentru accesibilitate.")
+  if (ctx.geometry !== "island") reasons.push("Economisește spațiu — ideal pentru băi mici.")
+
+  const reason = reasons.length > 0
+    ? `Recomandat: ${reasons.join(" ")}`
+    : "Recomandat: versatil, economisește spațiu, control bun al apei."
+
+  return { status: "recommended", reason }
+}
+
+// ══════════════════════════════════════════════
+// Decision Record Factory
+// ══════════════════════════════════════════════
 
 let decisionCounter = 300
 
@@ -84,22 +138,45 @@ export function createDecisionRecord(
   decisionCounter++
   const id = `DM-${decisionCounter}`
 
+  const barNote =
+    selected.id === "paravan" && context.stabilizationBar === "yes"
+      ? "Bara de stabilizare va fi adăugată la paravanul fix pentru robustețe suplimentară."
+      : null
+
   return {
     id,
     decidedAt: new Date().toISOString(),
     context: { ...context },
-    options: options.map((o) => ({ ...o, criteria: { ...o.criteria }, pros: [...o.pros], cons: [...o.cons], tradeoffs: [...o.tradeoffs] })),
+    options: options.map((o) => ({
+      ...o,
+      criteria: { ...o.criteria },
+      pros: [...o.pros],
+      cons: [...o.cons],
+      tradeoffs: [...o.tradeoffs],
+    })),
     selectedOptionId,
-    acceptedTradeoffs: selected.tradeoffs.map((t) => ({ description: t, whyAccepted: "Acceptat în urma evaluării complete." })),
+    acceptedTradeoffs: selected.tradeoffs.map((t) => ({
+      description: t,
+      whyAccepted: "Acceptat în urma evaluării complete a opțiunilor disponibile.",
+    })),
     lessons: [
       `Opțiunea ${selected.name} a fost aleasă.`,
-      ...options.filter((o) => o.id !== selectedOptionId).map((o) => `${o.name}: ${o.status === "excluded" ? "EXCLUSĂ" : "nerecomandată"} — ${o.reason}`),
+      ...options
+        .filter((o) => o.id !== selectedOptionId)
+        .map((o) => `${o.name}: ${o.status === "excluded" ? "EXCLUSĂ" : "nerecomandată"} — ${o.reason}`),
+      ...(barNote ? [barNote] : []),
     ],
     nextSteps: [
       "Verifică dimensiunile exacte în teren (măsurători in-situ).",
-      "Confirmă tipul de sticlă (securizată, tratament hidrofob opțional).",
-      context.accessType === "sliding_door" ? "Verifică compatibilitatea ghidajelor cu pardoseala." : "Asigură-te că panta de scurgere este suficientă pentru walk-in.",
-      "Consultă un instalator pentru validarea punctelor de prindere.",
+      selected.id === "culisant"
+        ? "Alege varianta de cărucioare: la vedere (culisant-vedere) sau ascunse soft-close (culisant-sina)."
+        : selected.id === "paravan"
+          ? "Confirmă dacă este necesară bara de stabilizare."
+          : "Confirmă tipul de balamale și mâner.",
+      "Alege tipul de sticlă (8mm/10mm) și finisajul (clară, parsol, satinată) în configurator.",
+      context.maintenance === "minimal"
+        ? "Include tratament ENDURO-Shield pentru protecție anti-calcificare."
+        : "Consultă un instalator pentru validarea punctelor de prindere.",
     ],
   }
 }
