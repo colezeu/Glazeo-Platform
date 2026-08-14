@@ -53,6 +53,14 @@ function evaluateButoni(ctx: DM002Context): EvaluationResult {
     }
   }
 
+  // ── PREFERENCE: tip de substrat necunoscut → nu recomanda fără confirmare ──
+  if (ctx.surfaceType === "unknown") {
+    return {
+      status: "not_recommended",
+      reason: "Tipul de substrat nu este cunoscut, iar butonii necesită ancorare sigură în beton sau structură metalică. Confirmă substratul înainte de a alege acest sistem.",
+    }
+  }
+
   // ── PREFERENCE: planeitate necunoscută → nu recomanda fără măsurători ──
   if (ctx.surfaceCondition === "unknown") {
     return {
