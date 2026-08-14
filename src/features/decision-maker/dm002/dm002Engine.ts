@@ -53,6 +53,14 @@ function evaluateButoni(ctx: DM002Context): EvaluationResult {
     }
   }
 
+  // ── PREFERENCE: planeitate necunoscută → nu recomanda fără măsurători ──
+  if (ctx.surfaceCondition === "unknown") {
+    return {
+      status: "not_recommended",
+      reason: "Planeitatea suprafeței nu este cunoscută, iar butonii necesită o suprafață aproape perfect plană (±3mm). Măsoară planeitatea înainte de a alege acest sistem.",
+    }
+  }
+
   // ── PREFERENCE: denivelări minore ──
   if (ctx.surfaceCondition === "minor_uneven") {
     return {

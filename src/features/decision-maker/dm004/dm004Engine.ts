@@ -100,6 +100,21 @@ function evaluateBatanta(ctx: DM004Context): EvaluationResult {
 // ══════════════════════════════════════════════
 
 function evaluateCulisant(ctx: DM004Context): EvaluationResult {
+  // ── CONSTRAINT: geometrie insulă → singura opțiune fezabilă ──
+  // Constrângerea geometrică are prioritate față de preferința de întreținere:
+  // întreținerea minimă poate penaliza glisanta când există alternative, dar
+  // nu trebuie să elimine singura soluție compatibilă cu geometria insulă.
+  if (ctx.geometry === "island") {
+    const reasons: string[] = ["Singura opțiune viabilă pentru geometrie insulă."]
+    if (ctx.maintenance === "minimal") {
+      reasons.push("Întreținere minimă: ghidajul inferior necesită totuși curățare periodică — alege cărucioare la vedere pentru acces facil.")
+    }
+    return {
+      status: "recommended",
+      reason: `Recomandat: ${reasons.join(" ")}`,
+    }
+  }
+
   // ── PREFERENCE: întreținere minimă → ghidajele necesită curățare ──
   if (ctx.maintenance === "minimal") {
     return {
@@ -108,17 +123,15 @@ function evaluateCulisant(ctx: DM004Context): EvaluationResult {
     }
   }
 
-  // ── RECOMMEND: insulă, spațiu îngust, accesibilitate ──
+  // ── RECOMMEND: spațiu îngust, accesibilitate ──
   const reasons: string[] = []
-  if (ctx.geometry === "island") reasons.push("Singura opțiune viabilă pentru geometrie insulă.")
   if (ctx.accessibility === "accessible") reasons.push("Nu necesită spațiu de manevră — bun pentru accesibilitate.")
-  if (ctx.geometry !== "island") reasons.push("Economisește spațiu — ideal pentru băi mici.")
+  reasons.push("Economisește spațiu — ideal pentru băi mici.")
 
-  const reason = reasons.length > 0
-    ? `Recomandat: ${reasons.join(" ")}`
-    : "Recomandat: versatil, economisește spațiu, control bun al apei."
-
-  return { status: "recommended", reason }
+  return {
+    status: "recommended",
+    reason: `Recomandat: ${reasons.join(" ")}`,
+  }
 }
 
 // ══════════════════════════════════════════════

@@ -226,6 +226,14 @@ describe("DM-002 Engine — butoni", () => {
     expect(butoni.status).toBe("recommended")
     expect(butoni.reason).toContain("35 RON")
   })
+
+  it("does not recommend butoni when surface condition is unknown", () => {
+    const ctx = { ...baseCtx, surfaceCondition: "unknown" as const }
+    const opts = evaluateOptions(ctx)
+    const butoni = opts.find((o) => o.id === "butoni")!
+    expect(butoni.status).toBe("not_recommended")
+    expect(butoni.reason).toContain("Măsoară")
+  })
 })
 
 // ══════════════════════════════════════════════

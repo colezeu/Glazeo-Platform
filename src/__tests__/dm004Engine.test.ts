@@ -132,6 +132,23 @@ describe("DM-004 Engine — culisant", () => {
     expect(c.status).toBe("recommended")
     expect(c.reason).toContain("manevră")
   })
+
+  it("keeps culisant recommended for island geometry even with minimal maintenance", () => {
+    const ctx = { ...baseCtx, geometry: "island" as const, maintenance: "minimal" as const }
+    const opts = evaluateOptions(ctx)
+    const c = opts.find((o) => o.id === "culisant")!
+    expect(c.status).toBe("recommended")
+    expect(c.reason).toContain("Singura")
+    expect(c.reason).toContain("curățare")
+  })
+
+  it("island + minimal maintenance yields exactly one recommended option (culisant)", () => {
+    const ctx = { ...baseCtx, geometry: "island" as const, maintenance: "minimal" as const }
+    const opts = evaluateOptions(ctx)
+    const recommended = opts.filter((o) => o.status === "recommended")
+    expect(recommended).toHaveLength(1)
+    expect(recommended[0].id).toBe("culisant")
+  })
 })
 
 // ══════════════════════════════════════════════
