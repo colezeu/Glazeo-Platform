@@ -22,10 +22,12 @@ test.describe("DM-004 Walk-in Shower", () => {
     await page.locator("text=Definește contextul").click()
     await page.waitForTimeout(300)
 
-    // Select context
-    await page.locator("text=Nișă").click()
-    await page.locator("text=Walk-in complet").click()
-    await page.locator("text=Suprafețe plane").click()
+    // Select context (5 întrebări — ontologie reconstruită)
+    await page.locator("text=Nișă (3 pereți)").click()
+    await page.locator("text=Suprafețe plane și finisate").click()
+    await page.locator("text=Standard (fără cerințe speciale)").click()
+    await page.locator("text=Normală (curățare periodică)").click()
+    await page.locator("text=Nu (suprafețe plane, estetică maximă)").click()
     await page.locator("text=Vezi opțiunile").click()
     await page.waitForTimeout(500)
 
@@ -33,7 +35,7 @@ test.describe("DM-004 Walk-in Shower", () => {
     const badges = page.locator("span:has-text('Recomandat'):not(:has-text('Recomandat:'))")
     await expect(badges).toHaveCount(3)
 
-    // Select frameless → compare → finalize
+    // Select paravan → compare → finalize
     await page.locator("text=Selectează și compară").first().click()
     await page.waitForTimeout(300)
     await page.locator("text=Finalizează decizia").click()
