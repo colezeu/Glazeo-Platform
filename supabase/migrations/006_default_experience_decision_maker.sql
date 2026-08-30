@@ -5,7 +5,9 @@
 -- Corecții de securitate (2026-08-28):
 --   1) auth.uid() obligatoriu și egal cu p_user_id → 42501 înainte de orice insert/select;
 --   2) SECURITY DEFINER cu search_path explicit (pg_catalog, public);
---   3) REVOKE ALL FROM PUBLIC + GRANT EXECUTE doar către authenticated;
+--   3) REVOKE ALL FROM PUBLIC, anon, service_role + GRANT EXECUTE doar către authenticated
+--      (normalizează drift-ul istoric de ACL: grant-uri explicite către anon/service_role
+--      din bazele live sunt eliminate atomic de migrare);
 --   4) retur minim: jsonb_build_object('default_experience', ...) — NU întregul rând;
 --   5) email canonic DOAR din JWT (auth.jwt()); dacă lipsește sau e gol → 42501 (refuz
 --      explicit). NU se acceptă p_email (client-supplied) ca identitate canonică.
@@ -107,6 +109,11 @@ begin
 end;
 $$;
 
--- ── Permisiuni: doar authenticated; PUBLIC și anon NU au acces ──
-revoke all on function rpc_initialize_account(uuid, text, text) from public;
-grant execute on function rpc_initialize_account(uuid, text, text) to authenticated;
+-- ── Permisiuni: doar authenticated; PUBLIC, anon, service_role NU au acces ──
+-- Normalizare drift ACL: revocă explicit și grant-urile istorice explicite
+-- (anon/service_role), nu doar implicitul PUBLIC. postgres rămâne owner.
+revoke all on function public.rpc_initialize_account(uuid, text, text)
+  from public, anon, service_role;
+
+grant execute on function public.rpc_initialize_account(uuid, text, text)
+  to authenticated;

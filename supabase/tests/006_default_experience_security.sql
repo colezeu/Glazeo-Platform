@@ -121,6 +121,30 @@ create table public.activity_events (
   created_at timestamp with time zone default now()
 );
 
+-- ── Reproduce live ACL drift (pre-006) ────────────────────────────────
+-- Baza live avea grant-uri EXPLICITE către anon și service_role pe funcția
+-- era-004 (ACL: {=X/postgres,...,anon=X/postgres,...,service_role=X/postgres}).
+-- CREATE OR REPLACE păstrează ACL-ul funcției existente → migrarea 006 trebuie
+-- să elimine drift-ul ATOMIC, prin REVOKE explicit de la public, anon, service_role.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    execute 'create role service_role nologin';
+  end if;
+end $$;
+
+grant usage on schema public to service_role;
+
+-- Funcție pre-006 (placeholder, aceeași semnătură) + grant-uri de drift.
+create or replace function public.rpc_initialize_account(p_user_id uuid, p_email text, p_full_name text)
+returns jsonb language plpgsql security definer as $$
+begin
+  return jsonb_build_object('status', 'pre-006-drift');
+end $$;
+
+grant execute on function public.rpc_initialize_account(uuid, text, text)
+  to public, anon, service_role, authenticated;
+
 -- ── Aplică migrarea 006 ────────────────────────────────────────────────
 \ir ../migrations/006_default_experience_decision_maker.sql
 
@@ -302,25 +326,41 @@ begin
 end $$;
 
 -- ══════════════════════════════════════════════════════════════════════
--- TEST 7 (SQL-level, în același fișier): GRANT/REVOKE — verificare statică
--- execuția reală ca anon/authenticated se face în runner (SET ROLE).
--- Aici verificăm că nu există EXECUTE pentru PUBLIC și că authenticated o are.
+-- TEST 7 (SQL-level): ACL după 006 — PUBLIC=no, anon=no, service_role=no,
+-- authenticated=yes. Grant-urile istorice de drift trebuie eliminate atomic.
+-- Execuția reală ca anon/authenticated/service_role se face în runner
+-- (SET ROLE). Rolul local service_role e creat în secțiunea de drift;
+-- curățarea lui se face de runner/curățenie (NU în acest fișier).
 -- ══════════════════════════════════════════════════════════════════════
 do $$
-declare v_proacl text;
+declare
+  v_pub bool; v_anon bool; v_sr bool; v_auth bool;
 begin
-  select proacl::text into v_proacl from pg_proc where proname = 'rpc_initialize_account' limit 1;
-  if v_proacl is null then
-    raise exception 'FAIL: proacl null pentru rpc_initialize_account';
-  end if;
-  -- format proacl: {owner=X/owner,authenticated=X/owner} — grantee gol ( =X/ ) = PUBLIC
-  if v_proacl ~ '[,\{]=[^/]*X' then
-    raise exception 'FAIL: PUBLIC are EXECUTE pe rpc_initialize_account (REVOKE lipsă): %', v_proacl;
-  end if;
-  if v_proacl !~ 'authenticated=[^/]*X' then
-    raise exception 'FAIL: authenticated NU are EXECUTE pe rpc_initialize_account (GRANT lipsă): %', v_proacl;
-  end if;
-  raise notice 'PASS: REVOKE PUBLIC (fără EXECUTE) + GRANT authenticated (EXECUTE) — proacl = %', v_proacl;
+  select coalesce(bool_or(a.grantee = 0 and a.privilege_type = 'EXECUTE'), false) into v_pub
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(p.proacl) a
+  where n.nspname = 'public' and p.proname = 'rpc_initialize_account';
+  if v_pub then raise exception 'FAIL: PUBLIC are EXECUTE pe rpc_initialize_account (REVOKE lipsă)'; end if;
+
+  select coalesce(bool_or(a.grantee = (select oid from pg_roles where rolname='anon') and a.privilege_type='EXECUTE'), false) into v_anon
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(p.proacl) a
+  where n.nspname = 'public' and p.proname = 'rpc_initialize_account';
+  if v_anon then raise exception 'FAIL: anon are EXECUTE pe rpc_initialize_account (drift anon neeliminat)'; end if;
+
+  select coalesce(bool_or(a.grantee = (select oid from pg_roles where rolname='service_role') and a.privilege_type='EXECUTE'), false) into v_sr
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(p.proacl) a
+  where n.nspname = 'public' and p.proname = 'rpc_initialize_account';
+  if v_sr then raise exception 'FAIL: service_role are EXECUTE pe rpc_initialize_account (drift service_role neeliminat)'; end if;
+
+  select coalesce(bool_or(a.grantee = (select oid from pg_roles where rolname='authenticated') and a.privilege_type='EXECUTE'), false) into v_auth
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  cross join lateral aclexplode(p.proacl) a
+  where n.nspname = 'public' and p.proname = 'rpc_initialize_account';
+  if not v_auth then raise exception 'FAIL: authenticated NU are EXECUTE pe rpc_initialize_account (GRANT lipsă)'; end if;
+
+  raise notice 'PASS: ACL — PUBLIC=no, anon=no, service_role=no, authenticated=yes (drift normalizat atomic)';
 end $$;
 
 -- Verdict final: dacă s-a ajuns aici fără excepție → toate testele SQL au trecut.
