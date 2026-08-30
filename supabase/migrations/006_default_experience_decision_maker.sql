@@ -10,6 +10,13 @@
 --   5) email canonic DOAR din JWT (auth.jwt()); dacă lipsește sau e gol → 42501 (refuz
 --      explicit). NU se acceptă p_email (client-supplied) ca identitate canonică.
 --      p_email rămâne în semnătură doar pentru compatibilitatea contractului RPC.
+-- Corecție concurență (2026-08-30):
+--   6) advisory lock transaction-scoped pe p_user_id (== auth.uid(), validat mai sus),
+--      înainte de primul SELECT/INSERT de inițializare → două inițializări concurente
+--      pentru același user NU mai pot crea organizații/proiecte duplicate. Eliberare
+--      automată la COMMIT/ROLLBACK. Cheie 64-bit deterministă (hashtextextended);
+--      coliziuni teoretic posibile în spațiul 2^64 → doar serializare benignă, fără
+--      deadlock (o singură cheie per tranzacție). Nu modifică modelul multi-org.
 -- Idempotent: repetiția apelului returnează profilul existent, fără efecte laterale.
 
 alter table public.profiles
@@ -44,6 +51,12 @@ begin
     raise exception 'insufficient_privilege: authenticated email is required'
       using errcode = '42501';
   end if;
+
+  -- 0c. Serialize inițializarea per user (race cross-session: tab-uri/dispozitive).
+  --     Advisory lock transaction-scoped, cheie 64-bit deterministă din p_user_id
+  --     (== auth.uid(), validat la 0). Eliberare automată la COMMIT/ROLLBACK.
+  --     Funcții pg_catalog schema-qualified → imune la manipulări de search_path.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_user_id::text, 0));
 
   -- 1. Profil: creează DOAR dacă nu există (DO NOTHING).
   --    Conturile existente (buyer/decision_maker) rămân exact cum sunt.
