@@ -23,12 +23,7 @@ export default function LandingPage({
     setLoading(true)
 
     try {
-      const user = await auth.signUp(email, password)
-      const key = `profile_created_${user.id}`
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1")
-        await auth.registerAccount(user.id, user.email ?? email)
-      }
+      await auth.signUp(email, password)
       onAuthenticated()
     } catch {
       // If user exists, try sign in

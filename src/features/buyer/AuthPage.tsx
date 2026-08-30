@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════
 // GLAZEO — Auth Page
-// Email login/logout + auto-create profile + org
+// Autentificare doar (login/signup). Inițializarea contului = App/resolution layer.
 // ══════════════════════════════════════════════
 import { useState, useEffect } from "react"
 import type { AuthGateway } from "../../auth/types"
@@ -32,20 +32,7 @@ export default function AuthPage({ auth, onAuthenticated }: AuthPageProps) {
       const user = mode === "login"
         ? await auth.signIn(email, password)
         : await auth.signUp(email, password)
-
-      if (mode === "signup" && user) {
-        const key = `profile_created_${user.id}`
-        if (!sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, "1")
-
-          try {
-            await auth.registerAccount(user.id, user.email ?? email)
-          } catch (rpcErr) {
-            console.error("Onboarding failed:", rpcErr)
-            // Fallback: user can still use the app, just won't have demo data
-          }
-        }
-      }
+      void user
 
       onAuthenticated()
     } catch (err) {
