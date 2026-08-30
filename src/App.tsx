@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import type { AuthGateway } from "./auth/types"
 import type { ExperienceGateway, ExperienceResolution } from "./experience/types"
 import { resolveExperience } from "./experience/resolveExperience"
+import { ensureProfileInitialized } from "./experience/onboarding"
 import LandingPage from "./features/buyer/LandingPage"
 import AuthPage from "./features/buyer/AuthPage"
 import BuyerHome from "./features/buyer/BuyerHome"
@@ -36,7 +37,23 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
     const requestId = ++requestIdRef.current
     setInitPhase({ phase: "resolving_experience" })
     try {
-      const profileResult = await experience.getProfile(id)
+      let profileResult = await experience.getProfile(id)
+      if (requestId !== requestIdRef.current) return
+
+      // Owner unic al auto-onboarding-ului: doar stratul de rezolvare inițializează conturi lipsă.
+      if (profileResult.status === "missing") {
+        const user = await auth.getCurrentUser()
+        if (requestId !== requestIdRef.current) return
+        profileResult = await ensureProfileInitialized(profileResult, {
+          currentUser: user,
+          registerAccount: (userId, email) => auth.registerAccount(userId, email),
+          session: {
+            getMarker: (key) => sessionStorage.getItem(key) !== null,
+            setMarker: (key) => sessionStorage.setItem(key, "1"),
+          },
+        })
+      }
+
       if (requestId !== requestIdRef.current) return
       const resolution = resolveExperience(profileResult)
       setExperienceState(resolution)
@@ -46,7 +63,7 @@ export default function App({ auth, experience, repo }: { auth: AuthGateway; exp
       if (requestId !== requestIdRef.current) return
       setInitPhase({ phase: "experience_error", message: err instanceof Error ? err.message : "Gateway error" })
     }
-  }, [experience])
+  }, [experience, auth])
 
   useEffect(() => {
     setInitPhase({ phase: "checking_auth" })

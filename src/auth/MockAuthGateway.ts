@@ -27,8 +27,9 @@ class MockAuthGateway implements AuthGateway {
     // no-op
   }
 
-  async registerAccount(_userId: string, _email: string): Promise<void> {
+  async registerAccount(_userId: string, _email: string): Promise<{ defaultExperience: string | null } | null> {
     // no-op — mock doesn't touch Supabase
+    return null
   }
 }
 

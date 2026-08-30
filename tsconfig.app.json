@@ -4,7 +4,7 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
@@ -19,7 +19,7 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"], "experience-gateway": ["./src/experience/LegacyBuyerExperienceGateway.entry.ts"], "decision-record-repo": ["./src/persistence/SupabaseDecisionRecordRepository.entry.ts"] }
+    "paths": { "auth-gateway": ["./src/auth/SupabaseAuthGateway.ts"], "experience-gateway": ["./src/experience/SupabaseExperienceGateway.entry.ts"], "decision-record-repo": ["./src/persistence/SupabaseDecisionRecordRepository.entry.ts"] }
   },
   "include": ["src"]
 }
