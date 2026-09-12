@@ -14,11 +14,21 @@ export class SupabaseDecisionRecordRepository implements DecisionRecordRepositor
   }
 
   async save(record: DecisionRecord): Promise<void> {
+    // Ownership din auth.uid(): rezolvat ÎNAINTE de insert.
+    // (Regresie istorică: promisiunea lui getUser() era pasată direct ca `user_id`,
+    //  ajungea `{}` după serializare → insert invalid pe coloana uuid.)
+    const {
+      data: { user },
+      error: userError,
+    } = await this.supabase.auth.getUser()
+    if (userError) throw new Error(`Failed to resolve current user: ${userError.message}`)
+    if (!user) throw new Error("Cannot save decision record: no authenticated user")
+
     const { error } = await this.supabase
       .from("decision_records")
       .insert({
         id: record.id,
-        user_id: this.supabase.auth.getUser().then(({ data }) => data.user?.id),
+        user_id: user.id,
         model_id: (record as any).intention?.type ?? "unknown",
         decided_at: record.decidedAt,
         snapshot: record,
