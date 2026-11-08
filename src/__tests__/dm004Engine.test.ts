@@ -263,6 +263,9 @@ describe("DM-004 Engine — Decision Record", () => {
 // ══════════════════════════════════════════════
 
 describe("DM-004 Persistence", () => {
+  // Contract C1/C2: cheia persistentă vine de la repository (bază), model_id din meta.
+  const META = { modelId: "walk_in_shower", modelTitle: "Cabină duș walk-in" }
+
   it("saves and loads snapshot identically", async () => {
     const repo = new MockDecisionRecordRepository("user-a")
     const ctx: DM004Context = {
@@ -275,12 +278,14 @@ describe("DM-004 Persistence", () => {
     const options = evaluateOptions(ctx)
     const record = createDecisionRecord(ctx, options, "culisant")
 
-    await repo.save(record)
-    const loaded = await repo.getById(record.id)
+    const { id } = await repo.save(record, META)
+    const loaded = await repo.getById(id)
 
     expect(loaded).not.toBeNull()
     const r = loaded as any
+    // Identificatorul intern („DM-301") rămâne în snapshot; cheia persistentă e alta.
     expect(r.id).toBe(record.id)
+    expect(id).not.toBe(record.id)
     expect(r.context.geometry).toBe("corner")
     expect(r.selectedOptionId).toBe("culisant")
     expect(loaded!.options).toHaveLength(3)
@@ -298,8 +303,8 @@ describe("DM-004 Persistence", () => {
     }
     const options = evaluateOptions(ctx)
     const record = createDecisionRecord(ctx, options, "paravan")
-    await repoA.save(record)
-    const loaded = await repoB.getById(record.id)
+    const { id } = await repoA.save(record, META)
+    const loaded = await repoB.getById(id)
     expect(loaded).toBeNull()
   })
 
@@ -314,11 +319,12 @@ describe("DM-004 Persistence", () => {
     }
     const options = evaluateOptions(ctx)
     const record = createDecisionRecord(ctx, options, "paravan")
-    await repo.save(record)
+    const { id } = await repo.save(record, META)
 
     const summaries = await repo.listByUser()
     expect(summaries).toHaveLength(1)
-    expect(summaries[0].id).toBe(record.id)
+    expect(summaries[0].id).toBe(id)
+    expect(summaries[0].modelId).toBe("walk_in_shower")
     expect(summaries[0].selectedOptionName).not.toBeNull()
   })
 })
